@@ -7,6 +7,8 @@ package XBee::Device;
 
 use strict;
 
+use base qw(XBee::Frame);
+
 my $DEBUG = 1;
 
 my $response_set = {
@@ -55,87 +57,11 @@ my $response_set = {
 sub new {
 	my ($class) = @_;
 
-	my $self = {
-		data => undef,
-		l_msb => undef,
-		to_read => undef,
-		cksum => undef,
-		state => 0,
-	};
+	my $self = $class->SUPER::new();
 
 	bless $self, $class;
 
 	return $self;
-}
-
-# ---------------------------------------------------------------------------
-# We've been advised that there is data to read on the socket. Read it and
-# try to construct a frame from it.
-# ---------------------------------------------------------------------------
-
-sub handleRead {
-	my ($self, $selector, $socket) = @_;
-
-	my $buf;
-	my $start = chr(0x7e);
-
-	my $n = sysread($socket, $buf, 100);
-	if ($n == 0) {
-		# EOF
-		print STDERR "FIXME - read EOF\n";
-		$selector->removeSelect($self);
-		return 0;
-	}
-
-	my $state = $self->{'state'};
-
-	foreach my $c (split(//, $buf)) {
-
-		if ($state == 0) {
-			if ($c eq $start) {
-				$self->{'data'} = undef;
-				$self->{'done'} = 0;
-				$state = 1;
-			}
-		}
-		elsif ($state == 1) {
-			$self->{'l_msb'} = ord($c);
-			$state = 2;
-		}
-		elsif ($state == 2) {
-			my $l_lsb = ord($c);
-			$self->{'to_read'} = ($self->{'l_msb'} << 8) + $l_lsb;
-			$self->{'cksum'} = 0;
-			$state = 3;
-		}
-		elsif ($state == 3) {
-			$self->{'data'} .= $c;
-			$self->{'cksum'} += ord($c);
-			$self->{'to_read'} --;
-			if ($self->{'to_read'} == 0) {
-				$state = 4;
-			}
-		}
-		elsif ($state == 4) {
-			$self->{'cksum'} += ord($c);
-			if ($self->{'cksum'} & 0xff != 0xff) {
-				$self->checksumError();
-			} else {
-				# We're done here
-				$self->recvdFrame();
-			}
-
-			$state = 0;
-		}
-		else {
-			die "Illegal state $state";
-		}
-	}
-
-	# Remember state for next time
-	$self->{'state'} = $state;
-
-	return 1;
 }
 
 sub checksumError {
@@ -274,40 +200,6 @@ sub getLastRXData {
 	return $rx_data;
 }
 
-# ---------------------------------------------------------------------------
-# Write a data frame to the device
-# Return 1 if written, 0 if error
-# ---------------------------------------------------------------------------
-
-sub writeData {
-	my ($self, $fh, $buf) = @_;
-
-	my $len = length($buf);
-
-	if ($len > 10000) {
-		# Too long
-		$@ = 'Packet too long';
-		return 0;
-	}
-
-	my $l_lsb = $len & 0xff;
-	my $l_msb = $len >> 8;
-
-	my $chksum = 0;
-	foreach my $c (split(//, $buf)) {
-		$chksum += ord($c);
-	}
-	$chksum = 0xff - ($chksum & 0xff);
-
-	my $s = chr(0x7e) . chr($l_msb) . chr($l_lsb) . $buf . chr($chksum);
-
-	# $self->printHex("Send Frame:", $s);
-
-	syswrite($fh, $s);
-
-	return 1;
-}
-
 sub writeATCommand {
 	my ($self, $fh, $cmd, $args) = @_;
 
@@ -331,20 +223,6 @@ sub writeATCommand {
 	}
 
 	return $self->writeData($fh, $s);
-}
-
-sub printHex {
-	my ($self, $heading, $s) = @_;
-
-	if ($DEBUG && defined($s)) {
-		my $str = $heading;
-
-		my @chars = unpack('C*', $s);
-		foreach my $i (@chars) {
-			$str .= sprintf(" %02x", $i);
-		}
-		print STDERR "$str\n";
-	}
 }
 
 sub sendRemoteCommand {
