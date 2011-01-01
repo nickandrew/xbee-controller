@@ -64,6 +64,38 @@ sub new {
 	return $self;
 }
 
+sub setHandler {
+	my ($self, $name, $obj, $func) = @_;
+
+	if (! $name) {
+		die "setHandler: need name";
+	}
+
+	$self->{handlers}->{$name} = {
+		obj => $obj,
+		func => $func,
+	};
+}
+
+sub runHandler {
+	my ($self, $name, @args) = @_;
+
+	if (!defined $name) {
+		die "runHandler: need name";
+	}
+
+	my $hr = $self->{handlers}->{$name};
+
+	if ($hr && $hr->{obj} && $hr->{func}) {
+		my $obj = $hr->{obj};
+		my $func = $hr->{func};
+
+		if ($obj && $func) {
+			$obj->$func(@args);
+		}
+	}
+}
+
 sub checksumError {
 	my ($self, $cksum) = @_;
 
