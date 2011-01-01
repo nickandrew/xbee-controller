@@ -202,6 +202,16 @@ sub _receivePacket {
 	printf STDERR ("Recvd data packet: node64 %08x %08x, node16 %04x, options %d, rf_data %s\n", $addr64_h, $addr64_l, $addr_16, $options, $rf_data);
 	$self->{'rx_data'} = $rf_data;
 	$self->printHex("RF Data:", $rf_data);
+
+	my $packet = {
+		sender64_h => $addr64_h,
+		sender64_l => $addr64_l,
+		sender16 => $addr_16,
+		options => $options,
+		data => $rf_data,
+	};
+
+	$self->runHandler('receivePacket', $packet);
 }
 
 sub _explicitReceivePacket {
@@ -212,6 +222,20 @@ sub _explicitReceivePacket {
 	printf STDERR ("Recvd explicit data packet: node64 %08x %08x, node16 %04x, src_e %02x, dst_e %02x, cluster_id %04x, profile_id %04x, options %d\n", $addr64_h, $addr64_l, $addr_16, $src_endpoint, $dst_endpoint, $cluster_id, $profile_id, $options);
 	$self->{'rx_data'} = $rf_data;
 	$self->printHex("RF Data:", $rf_data);
+	print STDERR "Data: $rf_data\n";
+
+	my $packet = {
+		sender64_h => $addr64_h,
+		sender64_l => $addr64_l,
+		sender16 => $addr_16,
+		src_endpoint => $src_endpoint,
+		dst_endpoint => $dst_endpoint,
+		cluster_id => $cluster_id,
+		profile_id => $profile_id,
+		data => $rf_data,
+	};
+
+	$self->runHandler('receivePacket', $packet);
 }
 
 sub _bindingReceivePacket {
