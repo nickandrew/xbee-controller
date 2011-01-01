@@ -173,7 +173,7 @@ sub _modemStatus {
 sub _transmitStatus {
 	my ($self, $data) = @_;
 
-	my ($type, $frame_id, $remote_address, $retry_count, $delivery_status, $discovery_status) = unpack('CCnCC', $data);
+	my ($type, $frame_id, $remote_address, $retry_count, $delivery_status, $discovery_status) = unpack('CCnCCC', $data);
 
 	printf STDERR ("Recvd Transmit Status: frame_id %d, remote_addr %04x, retries %d, delivery_status 0x%02x, discovery_status 0x%02x\n", $frame_id, $remote_address, $retry_count, $delivery_status, $discovery_status);
 }
