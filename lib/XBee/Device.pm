@@ -307,4 +307,29 @@ sub sendRemoteCommand {
 	return $self->writeData($fh, $s);
 }
 
+sub transmitRequest {
+	my ($self, $fh, $packet) = @_;
+
+	my $frame_id = $packet->{'frame_id'} || 0;
+	if (! $frame_id) {
+		$frame_id = 1;
+	}
+
+	my $addr64_h = $packet->{'dest64_h'};
+	my $addr64_l = $packet->{'dest64_l'};
+	my $addr_16 = $packet->{'dest16'};
+	my $radius = $packet->{'radius'};
+	my $options = $packet->{'options'};
+	my $data = $packet->{'data'};
+
+	my $s = pack('CCNNnCCa*', 0x10, $frame_id, $addr64_h, $addr64_l, $addr_16, $radius, $options, $data);
+
+	$self->{'frame_id'} = ($frame_id + 1) & 0xff;
+
+	printf STDERR ("Send Transmit Request: frame_id %d, data %s\n", $frame_id, $data);
+
+	$self->printHex("Transmit Request:");
+	return $self->writeData($fh, $s);
+}
+
 1;
