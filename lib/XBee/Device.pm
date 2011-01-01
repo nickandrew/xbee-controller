@@ -112,13 +112,13 @@ sub recvdFrame {
 
 	$self->{'done'} = 1;
 	my $data = $self->{'data'};
-	$self->printHex("Received frame:", $data);
 
 	my $type = sprintf('%02x', ord(substr($self->{'data'}, 0, 1)));
 
 	my $hr = $response_set->{$type};
 	if (! $hr) {
 		printf STDERR ("Received unknown packet type: %s\n", $type);
+		$self->printHex("Received frame:", $data);
 		return;
 	}
 
@@ -127,6 +127,7 @@ sub recvdFrame {
 
 	if (!defined $func) {
 		printf STDERR ("Ignoring packet of type: %s\n", $description);
+		$self->printHex("Received frame:", $data);
 		return;
 	}
 
@@ -208,7 +209,7 @@ sub _explicitReceivePacket {
 
 	my ($type, $addr64_h, $addr64_l, $addr_16, $src_endpoint, $dst_endpoint, $cluster_id, $profile_id, $options, $rf_data) = unpack('CNNnCCnnCa*', $data);
 
-	printf STDERR ("Recvd explicit data packet: node64 %08x %08x, node16 %04x, src_e %02x, dst_e %02x, cluster_id %04x, profile_id %04x, options %d, rf_data %s\n", $addr64_h, $addr64_l, $addr_16, $src_endpoint, $dst_endpoint, $cluster_id, $profile_id, $options, $rf_data);
+	printf STDERR ("Recvd explicit data packet: node64 %08x %08x, node16 %04x, src_e %02x, dst_e %02x, cluster_id %04x, profile_id %04x, options %d\n", $addr64_h, $addr64_l, $addr_16, $src_endpoint, $dst_endpoint, $cluster_id, $profile_id, $options);
 	$self->{'rx_data'} = $rf_data;
 	$self->printHex("RF Data:", $rf_data);
 }
