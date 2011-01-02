@@ -15,6 +15,7 @@ use strict;
 use Date::Format qw(time2str);
 use Getopt::Std qw(getopts);
 use JSON qw();
+use Sys::Syslog qw();
 
 use Selector::SocketFactory qw();
 
@@ -44,15 +45,6 @@ $SIG{'PIPE'} = sub {
 	exit(4);
 };
 
-my $socket = Selector::SocketFactory->new(
-	PeerAddr => $opt_h,
-	Proto => 'tcp',
-);
-
-if (!defined $socket) {
-	die "Unable to create a client socket";
-}
-
 my $json = JSON->new()->utf8();
 
 my $buffered;
@@ -63,36 +55,71 @@ my $now_dir = "$opt_d/now";
 mkdir($now_dir, 0755);
 my $made_dirs = { };
 
+Sys::Syslog::openlog('xbee-temp-log', "", "local0");
+
 while (1) {
-	my $buffer;
+	eval {
+		connectAndProcess();
+	};
 
-	my $n = sysread($socket, $buffer, 256);
-
-	if (!defined $n) {
-		die "Undef return from sysread";
-	}
-
-	if ($n == 0) {
-		die "EOF on client socket";
-	}
-
-	if ($n < 0) {
-		die "Error on client socket";
-	}
-
-	$buffered .= $buffer;
-
-	while ($buffered =~ /^(.+)\r?\n(.*)/s) {
-		my ($line, $rest) = ($1, $2);
-
-		$buffered = $rest;
-
-		processLine($line);
+	if ($@) {
+		my $err = $@;
+		Sys::Syslog::openlog('xbee-temp-log', "", "local0");
+		Sys::Syslog::syslog('error', "Daemon died: %s", $err);
+		sleep(30);
 	}
 }
 
 # NOTREACHED
 exit(0);
+
+# Create a client socket, connect to the server and process all XBee packets
+# received by the server (from all devices).
+
+sub connectAndProcess {
+
+
+	my $socket = Selector::SocketFactory->new(
+		PeerAddr => $opt_h,
+		Proto => 'tcp',
+	);
+
+	Sys::Syslog::syslog('info', "Connected to $opt_h");
+
+	if (!defined $socket) {
+		die "Unable to create a client socket";
+	}
+
+	while (1) {
+		my $buffer;
+
+		my $n = sysread($socket, $buffer, 256);
+
+		if (!defined $n) {
+			die "Undef return from sysread";
+		}
+
+		if ($n == 0) {
+			die "EOF on client socket";
+		}
+
+		if ($n < 0) {
+			die "Error on client socket";
+		}
+
+		$buffered .= $buffer;
+
+		while ($buffered =~ /^(.+)\r?\n(.*)/s) {
+			my ($line, $rest) = ($1, $2);
+
+			$buffered = $rest;
+
+			processLine($line);
+		}
+	}
+
+	# NOTREACHED
+}
 
 sub processLine {
 	my ($line) = @_;
@@ -100,7 +127,7 @@ sub processLine {
 	my $frame = $json->decode($line);
 
 	if (!defined $frame || ! ref $frame) {
-		warn "Illegal frame from $line\n";
+		Sys::Syslog::syslog('warning', "Illegal JSON frame in %s", $line);
 		return;
 	}
 
@@ -108,12 +135,12 @@ sub processLine {
 	my $payload = $frame->{payload};
 
 	if (! $type || ! $payload) {
-		warn "Frame missing type or payload: $line\n";
+		Sys::Syslog::syslog('warning', "Frame missing type or payload in %s", $line);
 		return;
 	}
 
 	if ($type ne 'receivePacket') {
-		warn "Ignoring non-receivePacket frame: $line\n";
+		Sys::Syslog::syslog('info', "Ignoring non-receivePacket frame in %s", $line);
 		return;
 	}
 
