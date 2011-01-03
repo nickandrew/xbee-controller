@@ -84,11 +84,11 @@ sub connectAndProcess {
 		Proto => 'tcp',
 	);
 
-	Sys::Syslog::syslog('info', "Connected to $opt_h");
-
 	if (!defined $socket) {
 		die "Unable to create a client socket";
 	}
+
+	Sys::Syslog::syslog('info', "Connected to $opt_h");
 
 	while (1) {
 		my $buffer;
