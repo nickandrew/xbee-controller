@@ -144,8 +144,17 @@ sub _ATResponse {
 
 	my ($type, $frame_id, $cmd, $status, $value) = unpack('CCa2Ca*', $data);
 
+	my $hr = {
+		frame_id => $frame_id,
+		cmd => $cmd,
+		status => $status,
+		value => $value,
+	};
+
 	printf STDERR ("Recvd AT response: frame_id %d, cmd %s, status %d ", $frame_id, $cmd, $status);
 	$self->printHex("value:", $value);
+
+	$self->runHandler('ATResponse', $hr);
 }
 
 sub _modemStatus {
@@ -168,6 +177,8 @@ sub _modemStatus {
 		$hr->{unjoined},
 		$hr->{coord_started},
 	);
+
+	$self->runHandler('modemStatus', $hr);
 }
 
 sub _transmitStatus {
@@ -175,7 +186,17 @@ sub _transmitStatus {
 
 	my ($type, $frame_id, $remote_address, $retry_count, $delivery_status, $discovery_status) = unpack('CCnCCC', $data);
 
+	my $hr = {
+		frame_id => $frame_id,
+		remote_address => $remote_address,
+		retry_count => $retry_count,
+		delivery_status => $delivery_status,
+		discovery_status => $discovery_status,
+	};
+
 	printf STDERR ("Recvd Transmit Status: frame_id %d, remote_addr %04x, retries %d, delivery_status 0x%02x, discovery_status 0x%02x\n", $frame_id, $remote_address, $retry_count, $delivery_status, $discovery_status);
+
+	$self->runHandler('transmitStatus', $hr);
 }
 
 sub _advancedModemStatus {
