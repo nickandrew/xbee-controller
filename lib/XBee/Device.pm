@@ -199,9 +199,7 @@ sub _receivePacket {
 
 	my ($type, $addr64_h, $addr64_l, $addr_16, $options, $rf_data) = unpack('CNNnCa*', $data);
 
-	printf STDERR ("Recvd data packet: node64 %08x %08x, node16 %04x, options %d, rf_data %s\n", $addr64_h, $addr64_l, $addr_16, $options, $rf_data);
 	$self->{'rx_data'} = $rf_data;
-	$self->printHex("RF Data:", $rf_data);
 
 	my $packet = {
 		sender64_h => $addr64_h,
