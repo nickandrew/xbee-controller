@@ -65,7 +65,7 @@ while (1) {
 	if ($@) {
 		my $err = $@;
 		Sys::Syslog::openlog('xbee-temp-log', "", "local0");
-		Sys::Syslog::syslog('error', "Daemon died: %s", $err);
+		Sys::Syslog::syslog('err', "Daemon died: %s", $err);
 		sleep(30);
 	}
 }
