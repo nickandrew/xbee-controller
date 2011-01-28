@@ -36,7 +36,7 @@ sub handleRead {
 	my $buf;
 	my $start = chr(0x7e);
 
-	my $n = sysread($socket, $buf, 100);
+	my $n = sysread($socket, $buf, 200);
 	if ($n == 0) {
 		# EOF
 		$selector->removeSelect($socket);
