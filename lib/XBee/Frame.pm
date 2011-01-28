@@ -76,7 +76,8 @@ sub handleRead {
 		}
 		elsif ($state == 4) {
 			$self->{'cksum'} += ord($c);
-			if ($self->{'cksum'} & 0xff != 0xff) {
+
+			if (($self->{'cksum'} & 0xff) != 0xff) {
 				$self->checksumError();
 			} else {
 				# We're done here
