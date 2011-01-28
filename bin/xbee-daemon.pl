@@ -46,25 +46,40 @@ $SIG{'PIPE'} = sub {
 	exit(4);
 };
 
-my $tty_obj = Selector::TTY->new($opt_d);
+while (1) {
+	eval {
+		main();
+	};
 
-my $daemon_obj = Controller::Daemon->new();
-
-$daemon_obj->addServer($tty_obj);
-
-foreach my $local_addr (@ARGV) {
-	my $listener = Selector::SocketFactory->new(
-		LocalAddr => $local_addr,
-		Proto => "tcp",
-		ReuseAddr => 1,
-		Listen => 5,
-	);
-
-	if ($listener) {
-		print("Listening on $local_addr\n") if ($opt_v);
-		$daemon_obj->addListener($listener);
+	if ($@) {
+		print STDERR "main() died due to: $@\n";
+		sleep(30);
 	}
 }
 
-$daemon_obj->eventLoop();
+# NOTREACHED
 exit(0);
+
+sub main {
+	my $tty_obj = Selector::TTY->new($opt_d);
+
+	my $daemon_obj = Controller::Daemon->new();
+
+	$daemon_obj->addServer($tty_obj);
+
+	foreach my $local_addr (@ARGV) {
+		my $listener = Selector::SocketFactory->new(
+			LocalAddr => $local_addr,
+			Proto => "tcp",
+			ReuseAddr => 1,
+			Listen => 5,
+		);
+
+		if ($listener) {
+			print("Listening on $local_addr\n") if ($opt_v);
+			$daemon_obj->addListener($listener);
+		}
+	}
+
+	$daemon_obj->eventLoop();
+}
