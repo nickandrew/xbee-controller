@@ -39,8 +39,9 @@ sub handleRead {
 	my $n = sysread($socket, $buf, 100);
 	if ($n == 0) {
 		# EOF
-		print STDERR "FIXME - read EOF\n";
-		$selector->removeSelect($self);
+		$selector->removeSelect($socket);
+		close($socket);
+		$self->readEOF();
 		return 0;
 	}
 
@@ -93,6 +94,17 @@ sub handleRead {
 	$self->{'state'} = $state;
 
 	return 1;
+}
+
+# ---------------------------------------------------------------------------
+# Called when EOF is seen on the file handle.
+# Override this in subclasses.
+# ---------------------------------------------------------------------------
+
+sub readEOF {
+	my ($self) = @_;
+
+	printf STDERR "EOF on XBee Frame\n";
 }
 
 # ---------------------------------------------------------------------------

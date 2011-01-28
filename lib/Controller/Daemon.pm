@@ -52,6 +52,7 @@ sub new {
 	my $xbee = XBee::Device->new();
 	$self->{xbee} = $xbee;
 	$xbee->setHandler('receivePacket', $self, 'serverReceivePacket');
+	$xbee->setHandler('readEOF', $self, 'serverReadEOF');
 
 	return $self;
 }
@@ -132,6 +133,17 @@ sub serverReceivePacket {
 	foreach my $object (values %{$self->{client_sockets}}) {
 		$object->send($json . "\n");
 	}
+}
+
+# ---------------------------------------------------------------------------
+# Called when EOF read on server socket (XBee device)
+# ---------------------------------------------------------------------------
+
+sub serverReadEOF {
+	my ($self) = @_;
+
+	print "Server read EOF\n";
+	die "EOF on server socket";
 }
 
 # Receive a packet structure from a client.
