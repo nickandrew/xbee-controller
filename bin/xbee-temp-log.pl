@@ -147,7 +147,7 @@ sub processLine {
 	# Process it.
 	$buffered_data .= $payload->{data};
 
-	while ($buffered_data =~ /^([^\n]+)\r?\n(.*)/s) {
+	while ($buffered_data =~ /^([^\n]*)\r?\n(.*)/s) {
 		my ($line, $rest) = ($1, $2);
 
 		if ($line =~ /^T=(\S+) D=(\S+) Temp (\S+)/) {
