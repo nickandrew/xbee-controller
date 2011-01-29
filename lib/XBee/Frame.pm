@@ -92,7 +92,7 @@ sub addData {
 # ---------------------------------------------------------------------------
 
 sub checksumError {
-	my ($self, $cksum) = @_;
+	my ($self) = @_;
 
 	printf STDERR ("Checksum error: got %02x, expected 0xff\n", $self->{'cksum'});
 	$self->printHex("Bad frame:", $self->{'data'});
@@ -124,7 +124,7 @@ sub serialise {
 	if ($len > 10000) {
 		# Too long
 		$@ = 'Packet too long';
-		return 0;
+		return undef;
 	}
 
 	my $l_lsb = $len & 0xff;
@@ -137,8 +137,6 @@ sub serialise {
 	$chksum = 0xff - ($chksum & 0xff);
 
 	my $s = chr(0x7e) . chr($l_msb) . chr($l_lsb) . $buf . chr($chksum);
-
-	# $self->printHex("Send Frame:", $s);
 
 	return $s;
 }
@@ -153,6 +151,7 @@ sub printHex {
 		foreach my $i (@chars) {
 			$str .= sprintf(" %02x", $i);
 		}
+
 		print STDERR "$str\n";
 	}
 }
