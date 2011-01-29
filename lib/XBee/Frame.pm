@@ -26,33 +26,6 @@ sub new {
 }
 
 # ---------------------------------------------------------------------------
-# We've been advised that there is data to read on the socket. Read it and
-# try to construct a frame from it.
-# ---------------------------------------------------------------------------
-
-sub handleRead {
-	my ($self, $selector, $socket) = @_;
-
-	my $buf;
-
-	my $n = sysread($socket, $buf, 200);
-	if ($n == 0) {
-		# EOF
-		$selector->removeSelect($socket);
-		close($socket);
-		$self->readEOF();
-		return 0;
-	}
-
-	if ($n < 0) {
-		die "Read error on XBee socket";
-	}
-
-	$self->addData($buf);
-	return 1;
-}
-
-# ---------------------------------------------------------------------------
 # Add the contents of $buf to our internal buffer. Whenever it contains a
 # complete and correct frame, call $self->recvdFrame().
 # ---------------------------------------------------------------------------
@@ -114,17 +87,6 @@ sub addData {
 }
 
 # ---------------------------------------------------------------------------
-# Called when EOF is seen on the file handle.
-# Override this in subclasses.
-# ---------------------------------------------------------------------------
-
-sub readEOF {
-	my ($self) = @_;
-
-	printf STDERR "EOF on XBee Frame\n";
-}
-
-# ---------------------------------------------------------------------------
 # Called when an illegal frame has been detected.
 # Override this in subclasses.
 # ---------------------------------------------------------------------------
@@ -179,21 +141,6 @@ sub serialise {
 	# $self->printHex("Send Frame:", $s);
 
 	return $s;
-}
-
-# ---------------------------------------------------------------------------
-# Write a data frame to the device
-# Return 1 if written, 0 if error
-# ---------------------------------------------------------------------------
-
-sub writeData {
-	my ($self, $fh, $buf) = @_;
-
-	my $s = $self->serialise($buf);
-
-	syswrite($fh, $s);
-
-	return 1;
 }
 
 sub printHex {
