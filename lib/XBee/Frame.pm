@@ -1,13 +1,42 @@
 #!/usr/bin/perl -w
 #   vim:sw=4:ts=4:
 #
-#  XBee protocol: layer 1, framing
+#  Copyright (C) 2010, Nick Andrew <nick@nick-andrew.net>
+#  Licensed under the terms of the GNU General Public License, Version 3
+
+=head1 NAME
+
+XBee::Frame - XBee packet framing
+
+=head1 DESCRIPTION
+
+This class implements the lowest layer of the XBee API protocol: correct assembly
+and disassembly of frames.
+
+The frame structure is:
+
+  start delimiter - 0x7e
+  data length MSB (1 byte)
+  data length LSB (1 byte)
+  data (N bytes)
+  checksum (1 byte)
+
+=head2 METHODS
+
+=cut
 
 package XBee::Frame;
 
 use strict;
 
 my $DEBUG = 1;
+
+
+=head2 I<new()>
+
+Return a new instance of this class. There are no parameters.
+
+=cut
 
 sub new {
 	my ($class) = @_;
@@ -25,10 +54,16 @@ sub new {
 	return $self;
 }
 
-# ---------------------------------------------------------------------------
-# Add the contents of $buf to our internal buffer. Whenever it contains a
-# complete and correct frame, call $self->recvdFrame().
-# ---------------------------------------------------------------------------
+
+=head2 I<addData($buf)>
+
+Add the contents of $buf to our internal buffer. Whenever it contains a
+complete and correct frame, call $self->recvdFrame(); the data is in
+$self->{data}.
+
+If there's an error in the frame, call $self->checksumError().
+
+=cut
 
 sub addData {
 	my ($self, $buf) = @_;
@@ -86,10 +121,14 @@ sub addData {
 	return 1;
 }
 
-# ---------------------------------------------------------------------------
-# Called when an illegal frame has been detected.
-# Override this in subclasses.
-# ---------------------------------------------------------------------------
+
+=head2 I<checksumError()>
+
+Called when an illegal frame has been detected.
+
+Override this in subclasses.
+
+=cut
 
 sub checksumError {
 	my ($self) = @_;
@@ -98,10 +137,14 @@ sub checksumError {
 	$self->printHex("Bad frame:", $self->{'data'});
 }
 
-# ---------------------------------------------------------------------------
-# Called when a frame has been successfully received from the XBee
-# Override this in subclasses.
-# ---------------------------------------------------------------------------
+
+=head2 I<recvdFrame()>
+
+Called when a frame has been successfully received from the XBee.
+
+Override this in subclasses.
+
+=cut
 
 sub recvdFrame {
 	my ($self) = @_;
@@ -111,10 +154,16 @@ sub recvdFrame {
 	$self->printHex("Received frame:", $data);
 }
 
-# ---------------------------------------------------------------------------
-# Build a frame from the data in $buf, and return it:
-#    0x7e, MSB(length), LSB(length), $buf, checksum($buf)
-# ---------------------------------------------------------------------------
+
+=head2 I<serialise($buf)>
+
+Build a frame from the data in $buf, and return it:
+
+    0x7e, MSB(length), LSB(length), $buf, checksum($buf)
+
+Return undef if unable to build a packet, with a reason in $@.
+
+=cut
 
 sub serialise {
 	my ($self, $buf) = @_;
@@ -140,6 +189,14 @@ sub serialise {
 
 	return $s;
 }
+
+
+=head2 I<printHex($title, $string)>
+
+If debugging is enabled and a string is supplied,
+then print to STDOUT the title followed by the string in hex.
+
+=cut
 
 sub printHex {
 	my ($self, $heading, $s) = @_;
