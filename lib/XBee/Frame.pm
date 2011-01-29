@@ -34,7 +34,6 @@ sub handleRead {
 	my ($self, $selector, $socket) = @_;
 
 	my $buf;
-	my $start = chr(0x7e);
 
 	my $n = sysread($socket, $buf, 200);
 	if ($n == 0) {
@@ -45,6 +44,23 @@ sub handleRead {
 		return 0;
 	}
 
+	if ($n < 0) {
+		die "Read error on XBee socket";
+	}
+
+	$self->addData($buf);
+	return 1;
+}
+
+# ---------------------------------------------------------------------------
+# Add the contents of $buf to our internal buffer. Whenever it contains a
+# complete and correct frame, call $self->recvdFrame().
+# ---------------------------------------------------------------------------
+
+sub addData {
+	my ($self, $buf) = @_;
+
+	my $start = chr(0x7e);
 	my $state = $self->{'state'};
 
 	foreach my $c (split(//, $buf)) {
@@ -134,12 +150,12 @@ sub recvdFrame {
 }
 
 # ---------------------------------------------------------------------------
-# Write a data frame to the device
-# Return 1 if written, 0 if error
+# Build a frame from the data in $buf, and return it:
+#    0x7e, MSB(length), LSB(length), $buf, checksum($buf)
 # ---------------------------------------------------------------------------
 
-sub writeData {
-	my ($self, $fh, $buf) = @_;
+sub serialise {
+	my ($self, $buf) = @_;
 
 	my $len = length($buf);
 
@@ -161,6 +177,19 @@ sub writeData {
 	my $s = chr(0x7e) . chr($l_msb) . chr($l_lsb) . $buf . chr($chksum);
 
 	# $self->printHex("Send Frame:", $s);
+
+	return $s;
+}
+
+# ---------------------------------------------------------------------------
+# Write a data frame to the device
+# Return 1 if written, 0 if error
+# ---------------------------------------------------------------------------
+
+sub writeData {
+	my ($self, $fh, $buf) = @_;
+
+	my $s = $self->serialise($buf);
 
 	syswrite($fh, $s);
 
