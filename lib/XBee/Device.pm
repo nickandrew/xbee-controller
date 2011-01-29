@@ -7,7 +7,7 @@ package XBee::Device;
 
 use strict;
 
-use base qw(XBee::Frame);
+use base qw(XBee::API::Frame);
 
 my $DEBUG = 1;
 

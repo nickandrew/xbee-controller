@@ -6,7 +6,7 @@
 
 =head1 NAME
 
-XBee::Frame - XBee packet framing
+XBee::API::Frame - XBee API packet framing
 
 =head1 DESCRIPTION
 
@@ -25,7 +25,7 @@ The frame structure is:
 
 =cut
 
-package XBee::Frame;
+package XBee::API::Frame;
 
 use strict;
 
