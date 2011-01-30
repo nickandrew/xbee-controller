@@ -3,32 +3,23 @@
 #
 #   Send a command to an XBee in API mode
 #
-#   Usage: xbee-cmd.pl XX arg arg ...
+#   Usage: xbee-cmd.pl -h host:port xx xx xx ...
 
 use strict;
 
 use Getopt::Std qw(getopts);
+use YAML qw();
 
-use Selector qw();
-use XBee::Device qw();
-use XBee::TTY qw();
+use XBee::Client qw();
 
-use vars qw($opt_d);
+use vars qw($opt_h);
 
-getopts('d:');
+getopts('h:');
 
-my $device = XBee::TTY->new($opt_d);
-my $controller = XBee::Device->new();
-my $selector = Selector->new();
+my $host = $opt_h || die "Need option -h host:port";
+my $xcl = XBee::Client->new($host);
 
-my $fh = $device->socket();
-
-$selector->addSelect([ $fh, $controller] );
-
-my $cmd = shift @ARGV;
-if (! $cmd || $cmd !~ /^..$/) {
-	die "Missing or incorrect command - need 2 chars";
-}
+# Convert all hex arguments to characters
 
 my $args = undef;
 foreach my $a (@ARGV) {
@@ -36,20 +27,31 @@ foreach my $a (@ARGV) {
 	$args .= $c;
 }
 
-$controller->writeATCommand($fh, $cmd, $args);
+# This packet type allows any API command to be sent.
+
+my $packet = {
+	type => 'APICommand',
+	data => $args,
+};
+
+$xcl->sendData($packet);
 my $count = 0;
 
 while ($count < 10) {
-	my $timeout = $selector->pollServer(1);
+	my $packet = $xcl->receivePacket(4);
 
-	if ($timeout) {
+	if (! $packet) {
 		$count ++;
+		next;
 	}
 
-	if ($controller->{'done'}) {
-		print "Done\n";
-		last;
-	}
+	my $type = $packet->type();
+
+	print '-=' x 32, "\n";
+	print "Received packet of type: $type\n";
+	print '-=' x 32, "\n\n";
+	print YAML::Dump($packet);
+	print "\n\n";
 }
 
 exit(0);
