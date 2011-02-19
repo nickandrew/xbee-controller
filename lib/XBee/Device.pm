@@ -46,7 +46,9 @@ my $response_set = {
 	},
 	'95' => {
 		description => 'Node Identification Indicator', # ZB not 2.5
-		func => undef,
+		func => '_nodeIdentificationIndicator',
+		unpack => 'CNNnCnNNZnCCnn',
+		keys => [qw(type sender64_h sender64_l sender16 rx_options remote16 remote64_h remote64_l node_id parent16 device_type source_event digi_profile_id manufacturer_id)],
 	},
 	'97' => {
 		description => 'Remote Command Response', # ZB not 2.5
@@ -132,7 +134,7 @@ sub recvdFrame {
 	}
 
 	# Call the appropriate handler function
-	$self->$func($data);
+	$self->$func($data, $hr);
 }
 
 # ---------------------------------------------------------------------------
@@ -273,6 +275,24 @@ sub _bindingReceivePacket {
 	printf STDERR ("Recvd binding data packet: bind_index %d, dst_e %02x, cluster_id %04x, options %d, rf_data %s\n", $bind_index, $dst_endpoint, $cluster_id, $options, $rf_data);
 	$self->{'rx_data'} = $rf_data;
 	$self->printHex("RF Data:", $rf_data);
+}
+
+sub _nodeIdentificationIndicator {
+	my ($self, $data, $packet_desc) = @_;
+
+	my $func = $packet_desc->{func} || die "No function";
+	my $unpack = $packet_desc->{'unpack'} || die "Packet definition for $func has no unpack key";
+	my $keys = $packet_desc->{'keys'} || die "Packet definition for $func has no keys";
+
+	my @values = unpack($unpack, $data);
+
+	my $packet = { };
+
+	foreach my $k (@$keys) {
+		$packet->{$k} = shift(@values);
+	}
+
+	$self->runHandler('nodeIdentificationIndicator', $packet);
 }
 
 sub getLastRXData {
