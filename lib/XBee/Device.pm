@@ -357,7 +357,14 @@ sub sendRemoteCommand {
 sub transmitRequest {
 	my ($self, $fh, $packet) = @_;
 
-	my $frame_id = $packet->{'frame_id'} || 0;
+	my $payload;
+	if (exists $packet->{payload}) {
+		$payload = $packet->{payload};
+	} else {
+		$payload = $packet;
+	}
+
+	my $frame_id = $packet->{'frame_id'} || $self->{frame_id} || 0;
 	if (! $frame_id) {
 		$frame_id = 1;
 	}
