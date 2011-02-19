@@ -100,7 +100,6 @@ sub recvString {
 
 			my $source = $packet->source();
 			if ($source ne $self->{xbee_device}) {
-				print "Ignored Packet from $source\n";
 				next;
 			}
 
