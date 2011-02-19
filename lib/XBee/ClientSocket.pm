@@ -140,8 +140,6 @@ sub handleRead {
 	while ($self->{buffer} =~ /^(.+)\r?\n(.*)/s) {
 		my $line = $1;
 		my $rest = $2;
-		print "Read: $line\n";
-		print "Rest: $rest\n";
 		$self->{buffer} = $rest;
 		$handler->clientRead($line);
 	}

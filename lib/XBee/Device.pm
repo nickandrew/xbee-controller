@@ -204,8 +204,6 @@ sub _transmitStatus {
 		discovery_status => $discovery_status,
 	};
 
-	printf STDERR ("Recvd Transmit Status: frame_id %d, remote_addr %04x, retries %d, delivery_status 0x%02x, discovery_status 0x%02x\n", $frame_id, $remote_address, $retry_count, $delivery_status, $discovery_status);
-
 	$self->runHandler('transmitStatus', $hr);
 }
 
