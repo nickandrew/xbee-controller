@@ -51,7 +51,10 @@ sub new {
 
 	my $xbee = XBee::Device->new();
 	$self->{xbee} = $xbee;
-	$xbee->setHandler('receivePacket', $self, 'serverReceivePacket');
+	$xbee->setHandler('ATResponse', $self, 'ATResponse');
+	$xbee->setHandler('transmitStatus', $self, 'transmitStatus');
+	$xbee->setHandler('receivePacket', $self, 'receivePacket');
+	$xbee->setHandler('nodeIdentificationIndicator', $self, 'nodeIdentificationIndicator');
 	$xbee->setHandler('readEOF', $self, 'serverReadEOF');
 
 	return $self;
@@ -102,13 +105,37 @@ sub eventLoop {
 	$self->{selector}->eventLoop();
 }
 
-sub serverReceivePacket {
+sub nodeIdentificationIndicator {
 	my ($self, $packet_hr) = @_;
+
+	$self->serverDistribute($packet_hr, 'nodeIdentificationIndicator');
+}
+
+sub ATResponse {
+	my ($self, $packet_hr) = @_;
+
+	$self->serverDistribute($packet_hr, 'ATResponse');
+}
+
+sub transmitStatus {
+	my ($self, $packet_hr) = @_;
+
+	$self->serverDistribute($packet_hr, 'transmitStatus');
+}
+
+sub receivePacket {
+	my ($self, $packet_hr) = @_;
+
+	$self->serverDistribute($packet_hr, 'receivePacket');
+}
+
+sub serverDistribute {
+	my ($self, $packet_hr, $type) = @_;
 
 	my ($seconds, $microseconds) = Time::HiRes::gettimeofday();
 
 	my $outer_frame = {
-		type => 'receivePacket',
+		type => $type,
 		time_s => $seconds,
 		time_u => $microseconds,
 		payload => $packet_hr,
@@ -156,7 +183,21 @@ sub clientRead {
 
 	my $packet_hr = $self->{json}->decode($line);
 
-	$self->{xbee}->transmitRequest($self->{xbee_socket}, $packet_hr);
+	if (!defined $packet_hr) {
+		print "Unable to decode into a packet\n";
+		return;
+	}
+
+	my $type = $packet_hr->{type};
+	my $xbee = $self->{xbee};
+	my $socket = $self->{xbee_socket};
+
+	if ($type eq 'transmitRequest') {
+		$xbee->transmitRequest($socket, $packet_hr);
+	}
+	elsif ($type eq 'APICommand') {
+		$xbee->writeData($socket, $packet_hr->{data});
+	}
 }
 
 1;
