@@ -48,7 +48,7 @@ $SIG{'PIPE'} = sub {
 my $json = JSON->new()->utf8();
 
 my $buffered;
-my $buffered_data;
+my $buffered_data = { };
 
 # Make directory for latest temperature from all devices
 my $now_dir = "$opt_d/now";
@@ -144,10 +144,12 @@ sub processLine {
 		return;
 	}
 
-	# Process it.
-	$buffered_data .= $payload->{data};
+	my $source = "$payload->{senser64_h}/$payload->{sender64_l}";
 
-	while ($buffered_data =~ /^([^\n]*)\r?\n(.*)/s) {
+	# Process it.
+	$buffered_data->{$source} .= $payload->{data};
+
+	while ($buffered_data->{$source} =~ /^([^\n]*)\r?\n(.*)/s) {
 		my ($line, $rest) = ($1, $2);
 
 		if ($line =~ /^T=(\S+) D=(\S+) Temp (\S+)/) {
@@ -157,7 +159,12 @@ sub processLine {
 			logTemperature($time, $device, $temp);
 		}
 
-		$buffered_data = $rest;
+		$buffered_data->{$source} = $rest;
+	}
+
+	# Clear non-thermometer sources which do not output lines of text
+	if (length($buffered_data->{$source}) >= 500) {
+		$buffered_data->{$source} = '';
 	}
 }
 
