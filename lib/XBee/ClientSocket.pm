@@ -137,7 +137,7 @@ sub handleRead {
 	# Buffer incomplete lines
 	$self->{buffer} .= $buffer;
 
-	while ($self->{buffer} =~ /^(.+)\r?\n(.*)/s) {
+	while ($self->{buffer} =~ /^([^\n]*)\r?\n(.*)/s) {
 		my $line = $1;
 		my $rest = $2;
 		$self->{buffer} = $rest;
