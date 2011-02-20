@@ -142,7 +142,7 @@ sub readPacket {
 
 	return undef if (!defined $self->{buffer});
 
-	if ($self->{buffer} =~ /^([^\n]*)\r?\n(.*)$/) {
+	if ($self->{buffer} =~ /^([^\n]*)\r?\n(.*)/s) {
 		my ($line, $rest) = ($1, $2);
 
 		$self->{buffer} = $rest;
