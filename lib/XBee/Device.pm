@@ -380,8 +380,6 @@ sub transmitRequest {
 
 	$self->{'frame_id'} = ($frame_id + 1) & 0xff;
 
-	printf STDERR ("Send Transmit Request: frame_id %d, data %s\n", $frame_id, $data);
-
 	$self->printHex("Transmit Request:");
 	return $self->writeData($fh, $s);
 }
