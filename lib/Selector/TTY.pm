@@ -1,5 +1,8 @@
 #!/usr/bin/perl -w
 #
+#  Copyright (C) 2010, Nick Andrew <nick@nick-andrew.net>
+#  Licensed under the terms of the GNU General Public License, Version 3
+#
 #  TTY access library
 
 package Selector::TTY;

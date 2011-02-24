@@ -1,9 +1,10 @@
 #!/usr/bin/perl -w
 #   vim:sw=4:ts=4:
-#   Copyright (C) 2010, Nick Andrew <nick@nick-andrew.net>
-#   Licensed under the terms of the GNU General Public License, Version 3
 #
-#   Common code for sockets - abstract superclass
+#  Copyright (C) 2010, Nick Andrew <nick@nick-andrew.net>
+#  Licensed under the terms of the GNU General Public License, Version 3
+#
+#  Common code for sockets - abstract superclass
 
 =head1 NAME
 

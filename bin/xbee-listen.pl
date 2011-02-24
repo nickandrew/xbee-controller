@@ -1,7 +1,10 @@
 #!/usr/bin/perl -w
 #   vim:sw=4:ts=4:
 #
-#   Loop, listening for data from XBee devices
+#  Copyright (C) 2010, Nick Andrew <nick@nick-andrew.net>
+#  Licensed under the terms of the GNU General Public License, Version 3
+#
+#  Loop, listening for data from XBee devices
 
 use strict;
 
