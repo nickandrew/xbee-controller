@@ -15,10 +15,9 @@ use strict;
 
 use Date::Format qw(time2str);
 use Getopt::Std qw(getopts);
-use JSON qw();
 use Sys::Syslog qw();
 
-use Selector::SocketFactory qw();
+use XBee::Client qw();
 
 use vars qw($opt_d $opt_h);
 
@@ -46,9 +45,6 @@ $SIG{'PIPE'} = sub {
 	exit(4);
 };
 
-my $json = JSON->new()->utf8();
-
-my $buffered;
 my $buffered_data = { };
 
 # Make directory for latest temperature from all devices
@@ -79,56 +75,30 @@ exit(0);
 
 sub connectAndProcess {
 
+	my $xcl = XBee::Client->new($opt_h);
 
-	my $socket = Selector::SocketFactory->new(
-		PeerAddr => $opt_h,
-		Proto => 'tcp',
-	);
-
-	if (!defined $socket) {
+	if (!defined $xcl) {
 		die "Unable to create a client socket";
 	}
 
 	Sys::Syslog::syslog('info', "Connected to $opt_h");
 
 	while (1) {
-		my $buffer;
+		my $packet = $xcl->receivePacket(60);
 
-		my $n = sysread($socket, $buffer, 256);
+		next if (!defined $packet);
 
-		if (!defined $n) {
-			die "Undef return from sysread";
-		}
-
-		if ($n == 0) {
-			die "EOF on client socket";
-		}
-
-		if ($n < 0) {
-			die "Error on client socket";
-		}
-
-		$buffered .= $buffer;
-
-		while ($buffered =~ /^(.+)\r?\n(.*)/s) {
-			my ($line, $rest) = ($1, $2);
-
-			$buffered = $rest;
-
-			processLine($line);
-		}
+		processPacket($packet);
 	}
 
 	# NOTREACHED
 }
 
-sub processLine {
-	my ($line) = @_;
-
-	my $frame = $json->decode($line);
+sub processPacket {
+	my ($frame) = @_;
 
 	if (!defined $frame || ! ref $frame) {
-		Sys::Syslog::syslog('warning', "Illegal JSON frame in %s", $line);
+		Sys::Syslog::syslog('warning', "Illegal frame");
 		return;
 	}
 
@@ -136,36 +106,35 @@ sub processLine {
 	my $payload = $frame->{payload};
 
 	if (! $type || ! $payload) {
-		Sys::Syslog::syslog('warning', "Frame missing type or payload in %s", $line);
+		Sys::Syslog::syslog('warning', "Frame missing type or payload");
 		return;
 	}
 
-	if ($type ne 'receivePacket') {
-		Sys::Syslog::syslog('info', "Ignoring non-receivePacket frame in %s", $line);
-		return;
-	}
+	if ($type eq 'receivePacket') {
+		my $source = "$payload->{sender64_h}/$payload->{sender64_l}";
 
-	my $source = "$payload->{senser64_h}/$payload->{sender64_l}";
+		# Process it.
+		$buffered_data->{$source} .= $payload->{data};
 
-	# Process it.
-	$buffered_data->{$source} .= $payload->{data};
+		while ($buffered_data->{$source} =~ /^([^\n]*)\r?\n(.*)/s) {
+			my ($line, $rest) = ($1, $2);
 
-	while ($buffered_data->{$source} =~ /^([^\n]*)\r?\n(.*)/s) {
-		my ($line, $rest) = ($1, $2);
+			if ($line =~ /^T=(\S+) D=(\S+) Temp (\S+)/) {
+				# It's a temperature log
 
-		if ($line =~ /^T=(\S+) D=(\S+) Temp (\S+)/) {
-			# It's a temperature log
+				my ($time, $device, $temp) = ($1, $2, $3);
+				logTemperature($time, $device, $temp);
+			}
 
-			my ($time, $device, $temp) = ($1, $2, $3);
-			logTemperature($time, $device, $temp);
+			$buffered_data->{$source} = $rest;
 		}
 
-		$buffered_data->{$source} = $rest;
-	}
+		# Clear non-thermometer sources which do not output lines of text
+		if (length($buffered_data->{$source}) >= 500) {
+			$buffered_data->{$source} = '';
+		}
 
-	# Clear non-thermometer sources which do not output lines of text
-	if (length($buffered_data->{$source}) >= 500) {
-		$buffered_data->{$source} = '';
+		return;
 	}
 }
 
