@@ -117,6 +117,10 @@ sub handleRead {
 	my $buf;
 	my $n = $socket->sysread($buf, 512);
 
+	if (!defined $n) {
+		return 0;
+	}
+
 	if ($n < 0) {
 		$self->{error} = $!;
 		die "Error $! on socket read";
