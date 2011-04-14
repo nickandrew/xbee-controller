@@ -14,9 +14,8 @@
 use strict;
 
 use Getopt::Std qw(getopts);
-use JSON qw();
 
-use Selector::SocketFactory qw();
+use XBee::Client qw();
 
 use vars qw($opt_h);
 
@@ -35,28 +34,15 @@ $SIG{'PIPE'} = sub {
 	exit(4);
 };
 
-my $alarm = 0;
-
-$SIG{'ALRM'} = sub {
-	$alarm = 1;
-};
-
-my $json = JSON->new()->utf8();
-
-my $buffered;
-
 connectAndProcess();
 
 exit(0);
 
 sub connectAndProcess {
 
-	my $socket = Selector::SocketFactory->new(
-		PeerAddr => $opt_h,
-		Proto => 'tcp',
-	);
+	my $xcl = XBee::Client->new($opt_h);
 
-	if (!defined $socket) {
+	if (!defined $xcl) {
 		die "Unable to create a client socket";
 	}
 
@@ -68,48 +54,30 @@ sub connectAndProcess {
 		data => $data,
 	};
 
-	sendPacket($socket, $cmd_hr);
+	$xcl->sendData($cmd_hr);
 
 	# The following is a blocking loop but 
-	alarm(10);
+	my $end_time = time() + 10;
 
-	while (! $alarm) {
-		my $buffer;
-
-		my $n = sysread($socket, $buffer, 256);
-
-		if (!defined $n) {
-			# Alarmed
-			next;
+	while (1) {
+		my $now = time();
+		if ($now >= $end_time) {
+			last;
 		}
 
-		if ($n == 0) {
-			die "EOF on client socket";
-		}
+		my $timeout = $end_time - $now;
 
-		if ($n < 0) {
-			die "Error on client socket";
-		}
-
-		$buffered .= $buffer;
-
-		while ($buffered =~ /^(.+)\r?\n(.*)/s) {
-			my ($line, $rest) = ($1, $2);
-
-			$buffered = $rest;
-
-			processLine($line);
-		}
+		my $packet = $xcl->receivePacket($timeout);
+		next if (!defined $packet);
+		processPacket($packet);
 	}
 }
 
-sub processLine {
-	my ($line) = @_;
-
-	my $frame = $json->decode($line);
+sub processPacket {
+	my ($frame) = @_;
 
 	if (!defined $frame || ! ref $frame) {
-		print "Illegal JSON frame: $line\n";
+		print "Illegal frame\n";
 		return;
 	}
 
@@ -117,7 +85,7 @@ sub processLine {
 	my $payload = $frame->{payload};
 
 	if (! $type || ! $payload) {
-		print "Frame missing type or payload: $line\n";
+		print "Frame missing type or payload\n";
 		return;
 	}
 
@@ -148,12 +116,4 @@ sub processLine {
 
 		print "\n";
 	}
-}
-
-sub sendPacket {
-	my ($socket, $packet) = @_;
-
-	my $string = $json->encode($packet) . "\n";
-
-	$socket->syswrite($string);
 }
