@@ -16,6 +16,7 @@ use strict;
 use Getopt::Std qw(getopts);
 
 use XBee::Client qw();
+use XBee::API::Series2 qw();
 
 use vars qw($opt_h);
 
@@ -46,15 +47,12 @@ sub connectAndProcess {
 		die "Unable to create a client socket";
 	}
 
-	my $frame_id = 8;
-	my $data = pack('CCa2', 0x08, $frame_id, 'ND');
+	my $xbee_api = XBee::API::Series2->new($xcl);
+	if (! $xbee_api) {
+		die "Unable to create an XBee API implementation";
+	}
 
-	my $cmd_hr = {
-		type => 'APICommand',
-		data => $data,
-	};
-
-	$xcl->sendData($cmd_hr);
+	$xbee_api->sendNodeDiscover();
 
 	# The following is a blocking loop but 
 	my $end_time = time() + 10;
@@ -69,12 +67,12 @@ sub connectAndProcess {
 
 		my $packet = $xcl->receivePacket($timeout);
 		next if (!defined $packet);
-		processPacket($packet);
+		processPacket($xbee_api, $packet);
 	}
 }
 
 sub processPacket {
-	my ($frame) = @_;
+	my ($xbee_api, $frame) = @_;
 
 	if (!defined $frame || ! ref $frame) {
 		print "Illegal frame\n";
@@ -95,25 +93,13 @@ sub processPacket {
 	}
 
 	if ($type eq 'ATResponse') {
-		my $cmd = $payload->{cmd};
-		my $value = $payload->{value};
+		my $hr = $xbee_api->parseATResponse($payload);
 
-		my @bytes = split(//, $value);
-		printf("Cmd: %s data: %s\n", $cmd, join(' ', map { sprintf("%02x", ord($_)) } (@bytes)));
-
-		if ($cmd eq 'ND') {
-			my ($my, $sh, $sl, $ni, $parent_network, $device_type, $status, $profile_id, $manufacturer_id) = unpack('nNNZ*nCCnn', $value);
-			printf("AT Command Response : Node Discover\n");
-			printf("16-bit address      : %04x\n", $my);
-			printf("64 bit address      : %08x %08x\n", $sh, $sl);
-			printf("Node Identifier     : <%s>\n", $ni);
-			printf("Parent Network Addr : %04x\n", $parent_network);
-			printf("Device Type         : %x\n", $device_type);
-			printf("Status              : %x\n", $status);
-			printf("Profile ID          : %04x\n", $profile_id);
-			printf("Manufacturer ID     : %04x\n", $manufacturer_id);
+		if ($hr && $hr->{'AT Command Response'} eq 'Node Discover') {
+			foreach my $k (sort (keys %$hr)) {
+				printf("%-20s : %s\n", $k, $hr->{$k});
+			}
+			print "\n";
 		}
-
-		print "\n";
 	}
 }
