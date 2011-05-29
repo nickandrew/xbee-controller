@@ -113,12 +113,11 @@ sub checksumError {
 # ---------------------------------------------------------------------------
 
 sub recvdFrame {
-	my ($self) = @_;
+	my ($self, $data) = @_;
 
 	$self->{'done'} = 1;
-	my $data = $self->{'data'};
 
-	my $type = sprintf('%02x', ord(substr($self->{'data'}, 0, 1)));
+	my $type = sprintf('%02x', ord(substr($data, 0, 1)));
 
 	my $hr = $response_set->{$type};
 	if (! $hr) {

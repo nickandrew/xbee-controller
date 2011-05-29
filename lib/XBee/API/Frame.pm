@@ -58,8 +58,7 @@ sub new {
 =head2 I<addData($buf)>
 
 Add the contents of $buf to our internal buffer. Whenever it contains a
-complete and correct frame, call $self->recvdFrame(); the data is in
-$self->{data}.
+complete and correct frame, call $self->recvdFrame($data).
 
 If there's an error in the frame, call $self->checksumError().
 
@@ -105,7 +104,9 @@ sub addData {
 				$self->checksumError();
 			} else {
 				# We're done here
-				$self->recvdFrame();
+				my $data = $self->{'data'};
+				$self->{'data'} = undef;
+				$self->recvdFrame($data);
 			}
 
 			$state = 0;
@@ -138,7 +139,7 @@ sub checksumError {
 }
 
 
-=head2 I<recvdFrame()>
+=head2 I<recvdFrame($data)>
 
 Called when a frame has been successfully received from the XBee.
 
@@ -147,10 +148,9 @@ Override this in subclasses.
 =cut
 
 sub recvdFrame {
-	my ($self) = @_;
+	my ($self, $data) = @_;
 
 	$self->{'done'} = 1;
-	my $data = $self->{'data'};
 	$self->printHex("Received frame:", $data);
 }
 
