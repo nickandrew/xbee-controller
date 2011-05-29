@@ -54,7 +54,7 @@ while (1) {
 
 	if ($@) {
 		print STDERR "main() died due to: $@\n";
-		sleep(30);
+		exit(8);
 	}
 }
 
@@ -83,4 +83,7 @@ sub main {
 	}
 
 	$daemon_obj->eventLoop();
+
+	print "Controller eventLoop() returned, exiting\n";
+	exit(0);
 }
