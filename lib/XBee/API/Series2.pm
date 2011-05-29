@@ -48,21 +48,16 @@ sub new {
 	return $self;
 }
 
-=head2 I<sendNodeDiscover($ni_value)>
+# ---------------------------------------------------------------------------
+# Pack an AT command and send it
+# ---------------------------------------------------------------------------
 
-Format and send a 'Node Discover' command.
-
-$ni_value can be an optional 20-byte NI or MY value; it is presently ignored.
-
-Returns a true value.
-
-=cut
-
-sub sendNodeDiscover {
-	my ($self, $ni_value) = @_;
+sub _sendATCommand {
+	my ($self, $at, $rest) = @_;
 
 	my $frame_id = $self->{frame_id};
-	my $data = pack('CCa2', 0x08, $frame_id, 'ND');
+	$rest = '' if (!defined $rest);
+	my $data = pack('CCa2', 0x08, $frame_id, $at) . $rest;
 
 	my $cmd_hr = {
 		type => 'APICommand',
@@ -77,6 +72,79 @@ sub sendNodeDiscover {
 	return 1;
 }
 
+=head2 I<sendNodeDiscover($ni_value)>
+
+Format and send a 'Node Discover' command.
+
+$ni_value can be an optional 20-byte NI or MY value; it is presently ignored.
+
+Returns a true value.
+
+=cut
+
+sub sendNodeDiscover {
+	my ($self, $ni_value) = @_;
+
+	return $self->_sendATCommand('ND');
+}
+
+sub sendNodeIdentity {
+	my ($self) = @_;
+
+	return $self->_sendATCommand('NI');
+}
+
+sub sendPowerLevel {
+	my ($self) = @_;
+
+	return $self->_sendATCommand('PL');
+}
+
+sub sendMY {
+	my ($self) = @_;
+
+	return $self->_sendATCommand('MY');
+}
+
+sub sendSerialNumberHigh {
+	my ($self) = @_;
+
+	return $self->_sendATCommand('SH');
+}
+
+sub sendSerialNumberLow {
+	my ($self) = @_;
+
+	return $self->_sendATCommand('SL');
+}
+
+sub sendNodeJoin {
+	my ($self, $time) = @_;
+
+	my $data;
+
+	if (defined $time) {
+		$data = pack('C', $time);
+	}
+
+	return $self->_sendATCommand('NJ', $data);
+}
+
+sub sendFirmwareVersion {
+	my ($self) = @_;
+
+	return $self->_sendATCommand('VR');
+}
+
+=head2 I<parseATResponse($payload_hr)>
+
+Parse the received AT Response and return a formatted hashref.
+
+$payload_hr contains {cmd} and {value} keys, where 'cmd' is the
+AT command code, and 'value' is a string to be unpacked.
+
+=cut
+
 sub parseATResponse {
 	my ($self, $payload) = @_;
 
@@ -86,10 +154,12 @@ sub parseATResponse {
 	my @bytes = split(//, $value);
 	printf("Cmd: %s data: %s\n", $cmd, join(' ', map { sprintf("%02x", ord($_)) } (@bytes)));
 
+	my $hr;
+
 	if ($cmd eq 'ND') {
 		my ($my, $sh, $sl, $ni, $parent_network, $device_type, $status, $profile_id, $manufacturer_id) = unpack('nNNZ*nCCnn', $value);
 
-		my $hr = {
+		$hr = {
 			'AT Command Response' => 'Node Discover',
 			'16-bit address'      => sprintf("%04x", $my),
 			'64 bit address'      => sprintf("%08x %08x", $sh, $sl),
@@ -100,11 +170,66 @@ sub parseATResponse {
 			'Profile ID'          => sprintf("%04x", $profile_id),
 			'Manufacturer ID'     => sprintf("%04x", $manufacturer_id),
 		};
+	}
+	elsif ($cmd eq 'NI') {
+		my ($ni) = $value;
 
-		return $hr;
+		$hr = {
+			'AT Command Response' => 'Node Identity',
+			'Node Identifier'     => $ni,
+		};
+	}
+	elsif ($cmd eq 'PL') {
+		my ($power_level) = unpack('C', $value);
+
+		my $power_levels = {
+			0 => '-10/10 dBm',
+			1 => '-6/12 dBm',
+			2 => '-4/14 dBm',
+			3 => '-2/16 dBm',
+			4 => '0/18 dBm',
+		};
+
+		$hr = {
+			'AT Command Response' => 'Power Level',
+			'Power Level Id' => $power_level,
+			'Power Level' => $power_levels->{$power_level},
+		};
+	}
+	elsif ($cmd eq 'SH') {
+		my ($sh) = unpack('N', $value);
+
+		$hr = {
+			'AT Command Response' => 'Serial Number High',
+			'Serial Number High' => sprintf("%x", $sh),
+		};
+	}
+	elsif ($cmd eq 'SL') {
+		my ($sl) = unpack('N', $value);
+
+		$hr = {
+			'AT Command Response' => 'Serial Number Low',
+			'Serial Number Low' => sprintf("%x", $sl),
+		};
+	}
+	elsif ($cmd eq 'NJ') {
+		my ($nj) = unpack('C', $value);
+
+		$hr = {
+			'AT Command Response' => 'Node Join',
+			'Node Join' => sprintf("%x", $nj),
+		};
+	}
+	elsif ($cmd eq 'VR') {
+		my ($vr) = unpack('n', $value);
+
+		$hr = {
+			'AT Command Response' => 'Firmware Version',
+			'Firmware Version' => sprintf("%x", $vr),
+		};
 	}
 
-	return undef;
+	return $hr;
 }
 
 1;
