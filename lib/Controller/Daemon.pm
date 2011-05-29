@@ -103,7 +103,25 @@ sub removeClient {
 sub eventLoop {
 	my ($self) = @_;
 
-	$self->{selector}->eventLoop();
+	my $activity_time = time() + 120;
+
+	while (1) {
+		if (time() > $activity_time) {
+			# No activity timeout, exit
+			die "No activity for a long time";
+		}
+
+		my $rc = $self->{selector}->pollServer(60);
+		if ($rc == 0) {
+			# Something happened
+			$activity_time = time() + 120;
+		}
+
+		if ($self->{server_eof}) {
+			print "eventLoop() noticed EOF from server, returning\n";
+			return;
+		}
+	}
 }
 
 sub nodeIdentificationIndicator {
@@ -170,8 +188,8 @@ sub serverDistribute {
 sub serverReadEOF {
 	my ($self) = @_;
 
-	print "Server read EOF\n";
-	die "EOF on server socket";
+	print "Server socket read EOF\n";
+	$self->{server_eof} = 1;
 }
 
 # Receive a packet structure from a client.
