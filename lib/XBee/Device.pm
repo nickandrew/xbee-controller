@@ -59,6 +59,11 @@ my $response_set = {
 	},
 };
 
+my $unknown_frame_type = {
+	description => 'API Frame',
+	func => '_APIFrame',
+};
+
 sub new {
 	my ($class) = @_;
 
@@ -121,9 +126,8 @@ sub recvdFrame {
 
 	my $hr = $response_set->{$type};
 	if (! $hr) {
-		printf STDERR ("Received unknown packet type: %s\n", $type);
-		$self->printHex("Received frame:", $data);
-		return;
+		# Minimally encapsulate the frame
+		$hr = $unknown_frame_type;
 	}
 
 	my $description = $hr->{description} || 'no description';
@@ -295,6 +299,17 @@ sub _nodeIdentificationIndicator {
 	}
 
 	$self->runHandler('nodeIdentificationIndicator', $packet);
+}
+
+sub _APIFrame {
+	my ($self, $data, $packet_desc) = @_;
+
+	my $packet = {
+		type => sprintf('%02x', ord(substr($data, 0, 1)));
+		data => $data,
+	};
+
+	$self->runHandler('APIFrame', $packet);
 }
 
 sub getLastRXData {
