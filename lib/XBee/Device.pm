@@ -18,6 +18,9 @@ my $response_set = {
 	'88' => {
 		description => 'AT Command Response',
 		func => '_ATResponse',
+		unpack => 'CCa2Ca*',
+		keys => [qw(type frame_id cmd status value)],
+		handler => 'ATResponse',
 	},
 	'8a' => {
 		description => 'RF Module Status',
@@ -26,6 +29,8 @@ my $response_set = {
 	'8b' => {
 		description => 'ZigBee Transmit Status',
 		func => '_transmitStatus',
+		unpack => 'CCnCCC',
+		keys => [qw(type frame_id remote_address retry_count delivery_status discovery_status)],
 	},
 	'8c' => {
 		description => 'Advanced Modem Status',
@@ -34,14 +39,20 @@ my $response_set = {
 	'90' => {
 		description => 'ZigBee Receive Packet',
 		func => '_receivePacket',
+		unpack => 'CNNnCa*',
+		keys => [qw(type addr64_h addr64_l addr_16 options data)],
 	},
 	'91' => {
 		description => 'ZigBee Explicit RX Indicator',
 		func => '_explicitReceivePacket',
+		unpack => 'CNNnCCnnCa*',
+		keys => [qw(type sender64_h sender64_l sender16 src_endpoint dst_endpoint cluster_id profile_id options data)],
 	},
 	'92' => {
 		description => 'ZigBee Binding RX Indicator',
 		func => '_bindingReceivePacket',
+		unpack => 'CCCnCa*',
+		keys => [qw(type bind_index dst_endpoint cluster_id options data)],
 	},
 	'94' => {
 		description => 'XBee Sensor Read Indicator', # ZB not 2.5
@@ -132,15 +143,39 @@ sub recvdFrame {
 
 	my $description = $hr->{description} || 'no description';
 	my $func = $hr->{func};
+	my $handler = $hr->{handler};
 
-	if (!defined $func) {
-		printf STDERR ("Ignoring packet of type: %s\n", $description);
-		$self->printHex("Received frame:", $data);
-		return;
+	my $packet = _unpackFrame($hr->{unpack}, $hr->{keys}, $data);
+
+	if (defined $func) {
+		$self->$func($data, $hr, $packet);
 	}
 
-	# Call the appropriate handler function
-	$self->$func($data, $hr);
+	if ($handler) {
+		$self->runHandler($handler, $packet);
+	}
+}
+
+# ---------------------------------------------------------------------------
+# Unpack a frame data structure. Return a hashref
+# ---------------------------------------------------------------------------
+
+sub _unpackFrame {
+	my ($unpack, $keys, $data) = @_;
+
+	if (! $unpack || !$keys) {
+		return { };
+	}
+
+	my @values = unpack($unpack, $data);
+
+	my $packet = { };
+
+	foreach my $k (@$keys) {
+		$packet->{$k} = shift(@values);
+	}
+
+	return $packet;
 }
 
 # ---------------------------------------------------------------------------
@@ -158,21 +193,17 @@ sub readEOF {
 # ---------------------------------------------------------------------------
 
 sub _ATResponse {
-	my ($self, $data) = @_;
+	my ($self, $data, $packet) = @_;
 
-	my ($type, $frame_id, $cmd, $status, $value) = unpack('CCa2Ca*', $data);
+	printf STDERR ("Recvd AT response: frame_id %d, cmd %s, status %d ",
+		$packet->{frame_id},
+		$packet->{cmd},
+		$packet->{status}
+	);
 
-	my $hr = {
-		frame_id => $frame_id,
-		cmd => $cmd,
-		status => $status,
-		value => $value,
-	};
+	$self->printHex("value:", $packet->{value});
 
-	printf STDERR ("Recvd AT response: frame_id %d, cmd %s, status %d ", $frame_id, $cmd, $status);
-	$self->printHex("value:", $value);
-
-	$self->runHandler('ATResponse', $hr);
+	$self->runHandler('ATResponse', $packet);
 }
 
 sub _modemStatus {
@@ -284,15 +315,13 @@ sub _bindingReceivePacket {
 }
 
 sub _nodeIdentificationIndicator {
-	my ($self, $data, $packet_desc) = @_;
+	my ($self, $data, $packet_desc, $packet) = @_;
 
 	my $func = $packet_desc->{func} || die "No function";
 	my $unpack = $packet_desc->{'unpack'} || die "Packet definition for $func has no unpack key";
 	my $keys = $packet_desc->{'keys'} || die "Packet definition for $func has no keys";
 
 	my @values = unpack($unpack, $data);
-
-	my $packet = { };
 
 	foreach my $k (@$keys) {
 		$packet->{$k} = shift(@values);
