@@ -305,7 +305,7 @@ sub _APIFrame {
 	my ($self, $data, $packet_desc) = @_;
 
 	my $packet = {
-		type => sprintf('%02x', ord(substr($data, 0, 1)));
+		type => sprintf('%02x', ord(substr($data, 0, 1))),
 		data => $data,
 	};
 
