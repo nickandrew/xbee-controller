@@ -25,34 +25,39 @@ my $response_set = {
 	'8a' => {
 		description => 'RF Module Status',
 		func => '_modemStatus',
+		handler => 'modemStatus',
 	},
 	'8b' => {
 		description => 'ZigBee Transmit Status',
-		func => '_transmitStatus',
 		unpack => 'CCnCCC',
 		keys => [qw(type frame_id remote_address retry_count delivery_status discovery_status)],
+		handler => 'transmitStatus',
 	},
 	'8c' => {
 		description => 'Advanced Modem Status',
 		func => '_advancedModemStatus',
+		handler => 'advancedModemStatus',
 	},
 	'90' => {
 		description => 'ZigBee Receive Packet',
 		func => '_receivePacket',
 		unpack => 'CNNnCa*',
-		keys => [qw(type addr64_h addr64_l addr_16 options data)],
+		keys => [qw(type sender64_h sender64_l sender16 options data)],
+		handler => 'receivePacket',
 	},
 	'91' => {
 		description => 'ZigBee Explicit RX Indicator',
 		func => '_explicitReceivePacket',
 		unpack => 'CNNnCCnnCa*',
 		keys => [qw(type sender64_h sender64_l sender16 src_endpoint dst_endpoint cluster_id profile_id options data)],
+		handler => 'receivePacket',
 	},
 	'92' => {
 		description => 'ZigBee Binding RX Indicator',
 		func => '_bindingReceivePacket',
 		unpack => 'CCCnCa*',
 		keys => [qw(type bind_index dst_endpoint cluster_id options data)],
+		handler => 'bindingReceivePacket',
 	},
 	'94' => {
 		description => 'XBee Sensor Read Indicator', # ZB not 2.5
@@ -60,9 +65,9 @@ my $response_set = {
 	},
 	'95' => {
 		description => 'Node Identification Indicator', # ZB not 2.5
-		func => '_nodeIdentificationIndicator',
 		unpack => 'CNNnCnNNZnCCnn',
 		keys => [qw(type sender64_h sender64_l sender16 rx_options remote16 remote64_h remote64_l node_id parent16 device_type source_event digi_profile_id manufacturer_id)],
+		handler => 'nodeIdentificationIndicator',
 	},
 	'97' => {
 		description => 'Remote Command Response', # ZB not 2.5
@@ -73,6 +78,7 @@ my $response_set = {
 my $unknown_frame_type = {
 	description => 'API Frame',
 	func => '_APIFrame',
+	handler => 'APIFrame',
 };
 
 sub new {
@@ -193,7 +199,7 @@ sub readEOF {
 # ---------------------------------------------------------------------------
 
 sub _ATResponse {
-	my ($self, $data, $packet) = @_;
+	my ($self, $data, $packet_desc, $packet) = @_;
 
 	printf STDERR ("Recvd AT response: frame_id %d, cmd %s, status %d ",
 		$packet->{frame_id},
@@ -202,143 +208,97 @@ sub _ATResponse {
 	);
 
 	$self->printHex("value:", $packet->{value});
-
-	$self->runHandler('ATResponse', $packet);
 }
 
 sub _modemStatus {
-	my ($self, $data) = @_;
+	my ($self, $data, $packet_desc, $packet) = @_;
 
 	my ($type, $cmd_data) = unpack('CC', $data);
 
-	my $hr = {
-		hardware_reset => ($cmd_data & 1) ? 1 : 0,
-		watchdog_reset => ($cmd_data & 2) ? 1 : 0,
-		joined => ($cmd_data & 4) ? 1 : 0,
-		unjoined => ($cmd_data & 8) ? 1 : 0,
-		coord_started => ($cmd_data & 16) ? 1 : 0,
-	};
+	$packet->{hardware_reset} = ($cmd_data & 1) ? 1 : 0;
+	$packet->{watchdog_reset} = ($cmd_data & 2) ? 1 : 0;
+	$packet->{joined} = ($cmd_data & 4) ? 1 : 0;
+	$packet->{unjoined} = ($cmd_data & 8) ? 1 : 0;
+	$packet->{coord_started} = ($cmd_data & 16) ? 1 : 0;
 
 	printf STDERR ("Recvd Modem Status: hw_reset %d, wdog_reset %d, join %d, unjoin %d, coord %d\n",
-		$hr->{hardware_reset},
-		$hr->{watchdog_reset},
-		$hr->{joined},
-		$hr->{unjoined},
-		$hr->{coord_started},
+		$packet->{hardware_reset},
+		$packet->{watchdog_reset},
+		$packet->{joined},
+		$packet->{unjoined},
+		$packet->{coord_started},
 	);
-
-	$self->runHandler('modemStatus', $hr);
-}
-
-sub _transmitStatus {
-	my ($self, $data) = @_;
-
-	my ($type, $frame_id, $remote_address, $retry_count, $delivery_status, $discovery_status) = unpack('CCnCCC', $data);
-
-	my $hr = {
-		frame_id => $frame_id,
-		remote_address => $remote_address,
-		retry_count => $retry_count,
-		delivery_status => $delivery_status,
-		discovery_status => $discovery_status,
-	};
-
-	$self->runHandler('transmitStatus', $hr);
 }
 
 sub _advancedModemStatus {
-	my ($self, $data) = @_;
+	my ($self, $data, $packet_desc, $packet) = @_;
 
 	my ($type, $status_id) = unpack('CC', $data);
+
+	$packet->{type} = $type;
+	$packet->{status_id} = $status_id;
 
 	if ($status_id == 0) {
 		my ($type, $status_id, $addr64_h, $addr64_l, $addr_16, $dev_type, $join_action) = unpack('CCNNnCC', $data);
 		printf STDERR "Recvd Advanced Modem Status: node64 %08x %08x, node16 %04x, type %d, join_action %d\n", $addr64_h, $addr64_l, $addr_16, $dev_type, $join_action;
+		$packet->{addr64_h} = $addr64_h;
+		$packet->{addr64_l} = $addr64_l;
+		$packet->{addr_16} = $addr_16;
+		$packet->{dev_type} = $dev_type;
+		$packet->{join_action} = $join_action;
 	} elsif ($status_id == 1) {
 		my ($type, $status_id, $bind_index, $bind_type) = unpack('CCCC', $data);
 		printf STDERR "Recvd Advanced Modem Status: bind_index %d, bind type %d\n", $bind_index, $bind_type;
+		$packet->{bind_index} = $bind_index;
+		$packet->{bind_type} = $bind_type;
 	} else {
 		printf STDERR "Recvd Advanced Modem Status: invalid status_id 0x%02x\n", $status_id;
 	}
 }
 
 sub _receivePacket {
-	my ($self, $data) = @_;
+	my ($self, $data, $packet_desc, $packet) = @_;
 
-	my ($type, $addr64_h, $addr64_l, $addr_16, $options, $rf_data) = unpack('CNNnCa*', $data);
-
-	$self->{'rx_data'} = $rf_data;
-
-	my $packet = {
-		sender64_h => $addr64_h,
-		sender64_l => $addr64_l,
-		sender16 => $addr_16,
-		options => $options,
-		data => $rf_data,
-	};
-
-	$self->runHandler('receivePacket', $packet);
+	$self->{'rx_data'} = $packet->{data};
 }
 
 sub _explicitReceivePacket {
-	my ($self, $data) = @_;
+	my ($self, $data, $packet_desc, $packet) = @_;
 
-	my ($type, $addr64_h, $addr64_l, $addr_16, $src_endpoint, $dst_endpoint, $cluster_id, $profile_id, $options, $rf_data) = unpack('CNNnCCnnCa*', $data);
+	printf STDERR ("Recvd explicit data packet: node64 %08x %08x, node16 %04x, src_e %02x, dst_e %02x, cluster_id %04x, profile_id %04x, options %d\n",
+		$packet->{sender64_h},
+		$packet->{sender64_l},
+		$packet->{sender16},
+		$packet->{src_endpoint},
+		$packet->{dst_endpoint},
+		$packet->{cluster_id},
+		$packet->{profile_id},
+		$packet->{options});
 
-	printf STDERR ("Recvd explicit data packet: node64 %08x %08x, node16 %04x, src_e %02x, dst_e %02x, cluster_id %04x, profile_id %04x, options %d\n", $addr64_h, $addr64_l, $addr_16, $src_endpoint, $dst_endpoint, $cluster_id, $profile_id, $options);
-	$self->{'rx_data'} = $rf_data;
-	$self->printHex("RF Data:", $rf_data);
-	print STDERR "Data: $rf_data\n";
-
-	my $packet = {
-		sender64_h => $addr64_h,
-		sender64_l => $addr64_l,
-		sender16 => $addr_16,
-		src_endpoint => $src_endpoint,
-		dst_endpoint => $dst_endpoint,
-		cluster_id => $cluster_id,
-		profile_id => $profile_id,
-		data => $rf_data,
-	};
-
-	$self->runHandler('receivePacket', $packet);
+	$self->{'rx_data'} = $packet->{data};
+	$self->printHex("RF Data:", $packet->{data});
+	print STDERR "Data: $packet->{data}\n";
 }
 
 sub _bindingReceivePacket {
-	my ($self, $data) = @_;
-
-	my ($type, $bind_index, $dst_endpoint, $cluster_id, $options, $rf_data) = unpack('CCCnCa*', $data);
-
-	printf STDERR ("Recvd binding data packet: bind_index %d, dst_e %02x, cluster_id %04x, options %d, rf_data %s\n", $bind_index, $dst_endpoint, $cluster_id, $options, $rf_data);
-	$self->{'rx_data'} = $rf_data;
-	$self->printHex("RF Data:", $rf_data);
-}
-
-sub _nodeIdentificationIndicator {
 	my ($self, $data, $packet_desc, $packet) = @_;
 
-	my $func = $packet_desc->{func} || die "No function";
-	my $unpack = $packet_desc->{'unpack'} || die "Packet definition for $func has no unpack key";
-	my $keys = $packet_desc->{'keys'} || die "Packet definition for $func has no keys";
+	printf STDERR ("Recvd binding data packet: bind_index %d, dst_e %02x, cluster_id %04x, options %d, data %s\n",
+		$packet->{bind_index},
+		$packet->{dst_endpoint},
+		$packet->{cluster_id},
+		$packet->{options},
+		$packet->{data});
 
-	my @values = unpack($unpack, $data);
-
-	foreach my $k (@$keys) {
-		$packet->{$k} = shift(@values);
-	}
-
-	$self->runHandler('nodeIdentificationIndicator', $packet);
+	$self->{'rx_data'} = $packet->{data};
+	$self->printHex("RF Data:", $packet->{data});
 }
 
 sub _APIFrame {
-	my ($self, $data, $packet_desc) = @_;
+	my ($self, $data, $packet_desc, $packet) = @_;
 
-	my $packet = {
-		type => sprintf('%02x', ord(substr($data, 0, 1))),
-		data => $data,
-	};
-
-	$self->runHandler('APIFrame', $packet);
+	$packet->{type} = sprintf('%02x', ord(substr($data, 0, 1)));
+	$packet->{data} = $data;
 }
 
 sub getLastRXData {
