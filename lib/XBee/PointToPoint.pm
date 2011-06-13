@@ -111,9 +111,21 @@ sub recvString {
 			return $buf;
 		}
 		elsif ($type eq 'transmitStatus') {
+			my $payload = $packet->{payload};
+
 			# Capture the 16-bit remote address of our peer
-			if ($packet->{payload}->{frame_id} == $self->{frame_id}) {
-				$self->{remote16_address} = $packet->{payload}->{remote_address};
+			if ($payload->{frame_id} == $self->{frame_id}) {
+				$self->{remote16_address} = $payload->{remote_address};
+
+				my $delivery_status = $payload->{delivery_status};
+				my $discovery_status = $payload->{discovery_status};
+
+				if ($delivery_status != 0 || $discovery_status != 0) {
+					printf("Delivery status: %d  Discovery status: %d\n",
+						$delivery_status,
+						$discovery_status,
+					);
+				}
 			}
 		}
 		else {
