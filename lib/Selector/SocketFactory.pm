@@ -25,6 +25,7 @@ package Selector::SocketFactory;
 use strict;
 
 use Socket qw();
+use IO::Socket::INET qw();
 
 my $ipv6_supported = 0;
 
