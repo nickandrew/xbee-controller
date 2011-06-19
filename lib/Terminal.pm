@@ -67,6 +67,13 @@ sub handleRead {
 		return 0;
 	}
 
+	$self->addData($buf);
+	return 1;
+}
+
+sub addData {
+	my ($self, $buf) = @_;
+
 	print "Read text line: $buf\n";
 
 	$self->{buf} .= $buf;
