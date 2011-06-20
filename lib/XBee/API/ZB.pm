@@ -30,6 +30,24 @@ my $class_api = {
 		keys => [qw(type frame_id sender64_h sender64_l sender16 radius options data)],
 		handler => 'transmitRequest',
 	},
+	'11' => {
+		description => 'Explicit Addressing ZigBee Command Frame',
+		unpack => 'CCNNnCCnnCCa*',
+		keys => [qw(type frame_id dst64_h dst64_l dst16 src_endpoint dst_endpoint cluster_id profile_id radius options data)],
+		handler => 'explicitCommandFrame',
+	},
+	'21' => {
+		description => 'Create Source Route',
+		unpack => 'CCNNnCC',
+		keys => [qw(type frame_id dst64_h dst64_l dst16 route_options nr_addresses)],
+		handler => 'createSourceRoute',
+	},
+	'88' => {
+		description => 'AT Command Response',
+		unpack => 'CCa2Ca*',
+		keys => [qw(type frame_id cmd status value)],
+		handler => 'ATResponse',
+	},
 	'8a' => {
 		description => 'Modem Status',
 		unpack => 'CC',
@@ -37,11 +55,47 @@ my $class_api = {
 		func => '_modemStatus',
 		handler => 'modemStatus',
 	},
+	'8b' => {
+		description => 'ZigBee Transmit Status',
+		unpack => 'CCnCCC',
+		keys => [qw(type frame_id remote_address retry_count delivery_status discovery_status)],
+		handler => 'transmitStatus',
+	},
 	'90' => {
 		description => 'ZigBee Receive Packet',
 		unpack => 'CNNnCa*',
 		keys => [qw(type sender64_h sender64_l sender16 options data)],
 		handler => 'receivePacket',
+	},
+	'91' => {
+		description => 'ZigBee Explicit Rx Indicator',
+		unpack => 'CNNnCCnnCa*',
+		keys => [qw(type src64_h src64_l src16 src_endpoint dst_endpoint cluster_id profile_id options data)],
+		handler => 'explicitReceivePacket',
+	},
+	'92' => {
+		description => 'ZigBee IO Data Sample Rx Indicator',
+		unpack => 'CNNnCCnC',
+		keys => [qw(type src64_h src64_l src16 options samples digital_ch_mask analog_ch_mask)],
+		handler => 'receiveIOSample',
+	},
+	'94' => {
+		description => 'XBee Sensor Read Indicator',
+		unpack => 'CNNnCC',
+		keys => [qw(type src64_h src64_l src16 options sensors)],
+		handler => 'receiveSensor',
+	},
+	'95' => {
+		description => 'Node Identification Indicator',
+		unpack => 'CNNnCnNNZnCCnn',
+		keys => [qw(type sender64_h sender64_l sender16 rx_options remote16 remote64_h remote64_l node_id parent16 device_type source_event digi_profile_id manufacturer_id)],
+		handler => 'nodeIdentificationIndicator',
+	},
+	'97' => {
+		description => 'Over-the-Air Firmware Update Status',
+		unpack => 'CNNnCCCNN',
+		keys => [qw(type src64_h src64_l dst16 rx_options message_type block_number target64_h target64_l)],
+		handler => 'OTAFirmwareUpdateStatus',
 	},
 };
 
