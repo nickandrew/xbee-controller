@@ -14,6 +14,8 @@ my $api = XBee::API::ZB->new();
 testUnknownType(); # 0x05
 testATResponse();  # 0x88
 testModemStatus(); # 0x8a
+testReceivePacket(); # 0x90
+
 testParsePacket();
 
 exit(0);
@@ -80,6 +82,30 @@ sub testModemStatus {
 	};
 
 	is_deeply($packet, $compare, "Modem Status") || diag(explain($packet));
+}
+
+# ---------------------------------------------------------------------------
+# This tests Receiving a packet
+# ---------------------------------------------------------------------------
+
+sub testReceivePacket {
+	my @values = (0x90, 0x12, 0x34, 0x56, 0x78, 0x87, 0x65, 0x43, 0x21, 0x12, 0x34, 0x01);
+	my $bytes = pack('C*', @values) . "Hello!\n";
+	my $packet = $api->parseFrame($bytes);
+
+	my $compare = {
+		type => 'receivePacket',
+		payload => {
+			type => 0x90,
+			sender64_h => 0x12345678,
+			sender64_l => 0x87654321,
+			sender16 => 0x1234,
+			options => 0x01,
+			data => "Hello!\n",
+		},
+	};
+
+	is_deeply($packet, $compare, "Receive Packet") || diag(explain($packet));
 }
 
 # ---------------------------------------------------------------------------
