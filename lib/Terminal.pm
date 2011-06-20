@@ -60,10 +60,10 @@ sub handleRead {
 	my $buf;
 
 	my $n = sysread($socket, $buf, 100);
-	if ($n == 0) {
+	if ($n <= 0) {
 		# EOF
-		print STDERR "FIXME - read EOF\n";
-		$selector->removeSelect($self);
+		$self->runHandler('EOF');
+		$selector->removeSelect($socket);
 		return 0;
 	}
 
@@ -74,14 +74,12 @@ sub handleRead {
 sub addData {
 	my ($self, $buf) = @_;
 
-	print "Read text line: $buf\n";
-
 	$self->{buf} .= $buf;
 
 	my $i = index($self->{buf}, "\n");
 
 	# Flush the buffer one line at a time
-	while ($i > 0) {
+	while ($i >= 0) {
 		my $line = substr($self->{buf}, 0, $i);
 		$self->{buf} = substr($self->{buf}, $i + 1);
 
