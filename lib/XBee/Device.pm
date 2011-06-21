@@ -259,7 +259,6 @@ sub _advancedModemStatus {
 sub _receivePacket {
 	my ($self, $data, $packet_desc, $packet) = @_;
 
-	$self->{'rx_data'} = $packet->{data};
 }
 
 sub _explicitReceivePacket {
@@ -275,7 +274,6 @@ sub _explicitReceivePacket {
 		$packet->{profile_id},
 		$packet->{options});
 
-	$self->{'rx_data'} = $packet->{data};
 	$self->printHex("RF Data:", $packet->{data});
 	print STDERR "Data: $packet->{data}\n";
 }
@@ -290,7 +288,6 @@ sub _bindingReceivePacket {
 		$packet->{options},
 		$packet->{data});
 
-	$self->{'rx_data'} = $packet->{data};
 	$self->printHex("RF Data:", $packet->{data});
 }
 
@@ -299,15 +296,6 @@ sub _APIFrame {
 
 	$packet->{type} = sprintf('%02x', ord(substr($data, 0, 1)));
 	$packet->{data} = $data;
-}
-
-sub getLastRXData {
-	my ($self) = @_;
-
-	my $rx_data = $self->{'rx_data'};
-	$self->{'rx_data'} = undef;
-
-	return $rx_data;
 }
 
 sub writeATCommand {
