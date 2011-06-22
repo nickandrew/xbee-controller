@@ -127,40 +127,36 @@ sub eventLoop {
 sub nodeIdentificationIndicator {
 	my ($self, $packet_hr) = @_;
 
-	$self->serverDistribute($packet_hr, 'nodeIdentificationIndicator');
+	$self->serverDistribute($packet_hr);
 }
 
 sub ATResponse {
 	my ($self, $packet_hr) = @_;
 
-	$self->serverDistribute($packet_hr, 'ATResponse');
+	$self->serverDistribute($packet_hr);
 }
 
 sub transmitStatus {
 	my ($self, $packet_hr) = @_;
 
-	$self->serverDistribute($packet_hr, 'transmitStatus');
+	$self->serverDistribute($packet_hr);
 }
 
 sub receivePacket {
 	my ($self, $packet_hr) = @_;
 
-	$self->serverDistribute($packet_hr, 'receivePacket');
+	$self->serverDistribute($packet_hr);
 }
 
 sub serverDistribute {
-	my ($self, $packet_hr, $type) = @_;
+	my ($self, $packet_hr) = @_;
 
 	my ($seconds, $microseconds) = Time::HiRes::gettimeofday();
 
-	my $outer_frame = {
-		type => $type,
-		time_s => $seconds,
-		time_u => $microseconds,
-		payload => $packet_hr,
-	};
+	$packet_hr->{time_s} = $seconds;
+	$packet_hr->{time_u} = $microseconds;
 
-	my $json = $self->{json}->encode($outer_frame);
+	my $json = $self->{json}->encode($packet_hr);
 
 	if ($self->{clients} == 0) {
 		print("Ignored: $json\n");

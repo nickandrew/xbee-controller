@@ -151,11 +151,16 @@ sub recvdFrame {
 	my $func = $hr->{func};
 	my $handler = $hr->{handler};
 
-	my $packet = _unpackFrame($hr->{unpack}, $hr->{keys}, $data);
+	my $payload = _unpackFrame($hr->{unpack}, $hr->{keys}, $data);
 
 	if (defined $func) {
-		$self->$func($data, $hr, $packet);
+		$self->$func($data, $hr, $payload);
 	}
+
+	my $packet = {
+		type => $handler,
+		payload => $payload,
+	};
 
 	if ($handler) {
 		$self->runHandler($handler, $packet);
