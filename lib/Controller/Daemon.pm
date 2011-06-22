@@ -52,10 +52,7 @@ sub new {
 
 	my $xbee = XBee::Device->new();
 	$self->{xbee} = $xbee;
-	$xbee->setHandler('ATResponse', $self, 'ATResponse');
-	$xbee->setHandler('transmitStatus', $self, 'transmitStatus');
-	$xbee->setHandler('receivePacket', $self, 'receivePacket');
-	$xbee->setHandler('nodeIdentificationIndicator', $self, 'nodeIdentificationIndicator');
+	$xbee->setHandler('recvdPacket', $self, 'serverDistribute');
 	$xbee->setHandler('readEOF', $self, 'serverReadEOF');
 
 	return $self;
@@ -122,30 +119,6 @@ sub eventLoop {
 			return;
 		}
 	}
-}
-
-sub nodeIdentificationIndicator {
-	my ($self, $packet_hr) = @_;
-
-	$self->serverDistribute($packet_hr);
-}
-
-sub ATResponse {
-	my ($self, $packet_hr) = @_;
-
-	$self->serverDistribute($packet_hr);
-}
-
-sub transmitStatus {
-	my ($self, $packet_hr) = @_;
-
-	$self->serverDistribute($packet_hr);
-}
-
-sub receivePacket {
-	my ($self, $packet_hr) = @_;
-
-	$self->serverDistribute($packet_hr);
 }
 
 sub serverDistribute {

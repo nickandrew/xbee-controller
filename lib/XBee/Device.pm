@@ -162,9 +162,7 @@ sub recvdFrame {
 		payload => $payload,
 	};
 
-	if ($handler) {
-		$self->runHandler($handler, $packet);
-	}
+	$self->runHandler('recvdPacket', $packet);
 }
 
 # ---------------------------------------------------------------------------
