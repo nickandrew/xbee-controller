@@ -30,8 +30,9 @@ use JSON qw();
 use Time::HiRes qw();
 
 use Selector::ListenSocket qw();
+use Selector::PeerSocket qw();
 use Selector qw();
-use XBee::ClientSocket qw();
+use XBee::Encaps::JSON qw();
 use XBee::Device qw();
 
 sub new {
@@ -81,15 +82,23 @@ sub addServer {
 sub addClient {
 	my ($self, $socket) = @_;
 
-	my $client = XBee::ClientSocket->new($self->{selector}, $socket, $self);
-	$self->{client_sockets}->{$socket} = $client;
+	my $peer = Selector::PeerSocket->new($self->{selector}, $socket);
+	my $encaps = XBee::Encaps::JSON->new();
+
+	$peer->setHandler('socketError', $self, 'removeClient');
+	$peer->setHandler('EOF', $self, 'removeClient');
+	$peer->setHandler('addData', $encaps, 'addData');
+
+	$encaps->setHandler('sendPacket', $peer, 'writeData');
+	$encaps->setHandler('packet', $self, 'clientRead');
+
+	$self->{client_sockets}->{$socket} = $encaps;
 	$self->{clients} ++;
 }
 
 sub removeClient {
-	my ($self, $client) = @_;
+	my ($self, $socket) = @_;
 
-	my $socket = $client->socket();
 	if (exists $self->{client_sockets}->{$socket}) {
 		delete $self->{client_sockets}->{$socket};
 		$self->{clients} --;
@@ -146,7 +155,7 @@ sub serverDistribute {
 	# Iterate through all clients
 
 	foreach my $object (values %{$self->{client_sockets}}) {
-		$object->send($json . "\n");
+		$object->sendPacket($packet_hr);
 	}
 }
 
@@ -162,17 +171,13 @@ sub serverReadEOF {
 }
 
 # Receive a packet structure from a client.
-# Decode it into a hashref, then transmit it to the XBee.
+# Transmit it to the XBee
 
 sub clientRead {
-	my ($self, $line) = @_;
-
-	print("Received: $line\n");
-
-	my $packet_hr = $self->{json}->decode($line);
+	my ($self, $packet_hr) = @_;
 
 	if (!defined $packet_hr) {
-		print "Unable to decode into a packet\n";
+		print "No packet received\n";
 		return;
 	}
 
