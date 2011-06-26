@@ -48,7 +48,10 @@ use strict;
 use IO::Select qw();
 use JSON qw();
 
+use Selector qw();
+use Selector::PeerSocket qw();
 use Selector::SocketFactory qw();
+use XBee::Encaps::JSON qw();
 use XBee::Packet qw();
 
 =head2 I<new($server_address)>
@@ -70,13 +73,24 @@ sub new {
 		die "Unable to create a client socket";
 	}
 
+	my $selector = Selector->new();
+	my $peer = Selector::PeerSocket->new($selector, $socket);
+	my $encaps = XBee::Encaps::JSON->new();
+
 	my $self = {
-		buffer => '',
 		eof => 0,
 		error => 0,
 		json => JSON->new()->utf8(),
+		packet_queue => [ ],
+		encaps => $encaps,
 		socket => $socket,
+		selector => $selector,
+		peer => $peer,
 	};
+
+	$peer->setHandler('addData', $encaps, 'addData');
+	$encaps->setHandler('packet', $self, 'queuePacket');
+	$encaps->setHandler('sendPacket', $peer, 'writeData');
 
 	bless $self, $class;
 
@@ -93,77 +107,40 @@ if it has data ready for read.
 sub poll {
 	my ($self, $timeout) = @_;
 
-	my $sel = IO::Select->new();
-	$sel->add($self->{socket});
+	my $rc = $self->{selector}->pollServer($timeout);
 
-	my @ready = $sel->can_read($timeout);
-
-	if (@ready) {
+	if ($rc == 0) {
 		return 1;
 	}
 
 	return 0;
 }
 
-=head2 I<handleRead($socket)>
+=head2 I<queuePacket()>
 
-Read data from $socket and append to internal buffer.
+Accept a packet from a socket and queue internally.
 
 =cut
 
-sub handleRead {
-	my ($self, $socket) = @_;
+sub queuePacket {
+	my ($self, $packet) = @_;
 
-	my $buf;
-	my $n = $socket->sysread($buf, 512);
-
-	if (!defined $n) {
-		return 0;
-	}
-
-	if ($n < 0) {
-		$self->{error} = $!;
-		die "Error $! on socket read";
-	} elsif ($n == 0) {
-		$self->{eof} = 1;
-		die "EOF on socket read";
-	}
-
-	$self->{buffer} .= $buf;
-
-	return 1;
+	push(@{$self->{packet_queue}}, $packet);
 }
 
 =head2 I<readPacket()>
 
-If the start of our internal buffer contains a text line, then
-decode it and return the hashref if possible. The hashref is
-blessed as an XBee::Packet.
-
-If no packet is available (or could not be decoded), return undef.
+Dequeue a packet from our internal queue, and return it.
+Return undef if the queue is empty.
 
 =cut
 
 sub readPacket {
 	my ($self) = @_;
 
-	return undef if (!defined $self->{buffer});
+	my $packet = shift(@{$self->{packet_queue}});
 
-	if ($self->{buffer} =~ /^([^\n]*)\r?\n(.*)/s) {
-		my ($line, $rest) = ($1, $2);
-
-		$self->{buffer} = $rest;
-
-		if ($line ne '') {
-			my $packet = $self->{json}->decode($line);
-			if ($packet) {
-				bless $packet, 'XBee::Packet';
-			}
-			return $packet;
-		}
-	}
-
-	return undef;
+	return $packet;
 }
 
 =head2 I<receivePacket($timeout)>
@@ -189,10 +166,7 @@ sub receivePacket {
 		return undef;
 	}
 
-	# Read pending data
-	$self->handleRead($self->{socket});
-
-	# Try again to turn it into a packet
+	# Try again to retrieve a packet
 
 	return $self->readPacket();
 }
@@ -257,9 +231,9 @@ Send a packet to the server.
 sub sendData {
 	my ($self, $packet) = @_;
 
-	my $string = $self->{json}->encode($packet) . "\n";
+	my $string = $self->{json}->encode($packet);
 
-	$self->{socket}->syswrite($string);
+	$self->{encaps}->sendPacket($packet);
 }
 
 1;
