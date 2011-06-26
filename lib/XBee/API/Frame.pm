@@ -168,6 +168,11 @@ Return undef if unable to build a packet, with a reason in $@.
 sub serialise {
 	my ($self, $buf) = @_;
 
+	if (!defined $buf) {
+		$@ = 'No data supplied';
+		return undef;
+	}
+
 	my $len = length($buf);
 
 	if ($len > 10000) {
