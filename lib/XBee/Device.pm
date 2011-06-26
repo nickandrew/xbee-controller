@@ -416,6 +416,10 @@ sub handleRead {
 sub writeData {
 	my ($self, $fh, $buf) = @_;
 
+	if (!defined $buf) {
+		return 0;
+	}
+
 	my $s = $self->serialise($buf);
 
 	syswrite($fh, $s);
