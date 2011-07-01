@@ -236,4 +236,24 @@ sub sendData {
 	$self->{encaps}->sendPacket($packet);
 }
 
+=head2 I<sendATCommand($string)>
+
+Send an AT command packet (type 0x08)
+
+=cut
+
+sub sendATCommand {
+	my ($self, $cmd, $args) = @_;
+
+	my $packet = {
+		type => 'ATCommand',
+		payload => {
+			cmd => $cmd,
+			args => $args,
+		},
+	};
+
+	$self->sendData($packet);
+}
+
 1;
