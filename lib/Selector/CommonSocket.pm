@@ -60,7 +60,6 @@ sub DESTROY {
 	my ($self) = @_;
 
 	if ($self->{socket}) {
-		print "Closing socket\n";
 		$self->{socket}->close();
 		delete $self->{socket};
 	}
