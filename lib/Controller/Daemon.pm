@@ -184,12 +184,16 @@ sub clientRead {
 	my $type = $packet_hr->{type};
 	my $xbee = $self->{xbee};
 	my $socket = $self->{xbee_socket};
+	my $payload = $packet_hr->{payload};
 
 	if ($type eq 'transmitRequest') {
 		$xbee->transmitRequest($socket, $packet_hr);
 	}
 	elsif ($type eq 'APICommand') {
 		$xbee->writeData($socket, $packet_hr->{data});
+	}
+	elsif ($type eq 'ATCommand') {
+		$xbee->writeATCommand($socket, $payload->{cmd}, $payload->{args});
 	}
 }
 
