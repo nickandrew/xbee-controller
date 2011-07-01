@@ -70,6 +70,7 @@ sub new {
 		node_id => $address,
 		addr64_h => $addr64_h,
 		addr64_l => $addr64_l,
+		addr16 => 0xfffe,
 		buffer => '',
 		network => $network,
 		ni => '',
@@ -82,17 +83,38 @@ sub new {
 	return $self;
 }
 
-=item I<setNodeID($id)>
+=item I<setNodeID($id, $action)>
 
 Set the ASCII Node Identifier which is stored in non-volatile RAM on the
 XBee device.
 
+If $action is true then an update is sent to the device (otherwise, the
+value is only stored in this object).
+
 =cut
 
 sub setNodeID {
-	my ($self, $id) = @_;
+	my ($self, $id, $action) = @_;
 
 	$self->{ni} = $id;
+
+	if ($action) {
+		my ($dest64_h, $dest64_l, $dest16) = $self->_getAddress();
+
+		my $packet = {
+			type => 'remoteATCommand',
+			payload => {
+				dest64_h => $dest64_h,
+				dest64_l => $dest64_l,
+				dest16 => $dest16,
+				options => 0,
+				cmd => 'NI',
+				args => $id,
+			},
+		};
+
+		$self->{network}->sendPacket($packet);
+	}
 }
 
 =item I<getNodeID()>
@@ -130,7 +152,7 @@ sub _getAddress {
 
 	my $addr64_h = hex($self->{addr64_h});
 	my $addr64_l = hex($self->{addr64_l});
-	my $addr16 = $self->{addr16} || 0xfffe;
+	my $addr16 = $self->{addr16};
 
 	return ($addr64_h, $addr64_l, $addr16);
 }

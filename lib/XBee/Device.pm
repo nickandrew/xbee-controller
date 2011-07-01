@@ -327,14 +327,21 @@ sub writeATCommand {
 }
 
 sub sendRemoteCommand {
-	my ($self, $fh, $addr64_h, $addr64_l, $addr_16, $options, $cmd, $args) = @_;
+	my ($self, $fh, $payload) = @_;
 
 	my $frame_id = $self->{'frame_id'} || 0;
 	if (! $frame_id) {
 		$frame_id = 1;
 	}
 
-	my $s = pack('CCNNnCa2', 0x17, $frame_id, $addr64_h, $addr64_l, $addr_16, $options, $cmd);
+	my $dest64_h = $payload->{dest64_h};
+	my $dest64_l = $payload->{dest64_l};
+	my $dest16 = $payload->{dest16};
+	my $options = $payload->{options};
+	my $cmd = $payload->{cmd};
+	my $args = $payload->{args};
+
+	my $s = pack('CCNNnCa2', 0x17, $frame_id, $dest64_h, $dest64_l, $dest16, $options, $cmd);
 	if (defined $args) {
 		$s .= $args;
 	}

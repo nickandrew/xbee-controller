@@ -195,6 +195,9 @@ sub clientRead {
 	elsif ($type eq 'ATCommand') {
 		$xbee->writeATCommand($socket, $payload->{cmd}, $payload->{args});
 	}
+	elsif ($type eq 'remoteATCommand') {
+		$xbee->sendRemoteCommand($socket, $payload);
+	}
 }
 
 1;
