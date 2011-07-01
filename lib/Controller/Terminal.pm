@@ -93,12 +93,15 @@ sub terminalLine {
 			print "No destination set\n";
 		} else {
 			my $packet = {
-				dest64_h => $d_h,
-				dest64_l => $d_l,
-				dest16 => 0xfffe,
-				radius => 0,
-				options => 0,
-				data => $data,
+				type => 'transmitRequest',
+				payload => {
+					dest64_h => $d_h,
+					dest64_l => $d_l,
+					dest16 => 0xfffe,
+					radius => 0,
+					options => 0,
+					data => $data,
+				},
 			};
 
 			$self->{device}->transmitRequest($fh, $packet);

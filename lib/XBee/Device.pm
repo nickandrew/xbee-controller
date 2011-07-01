@@ -354,24 +354,19 @@ sub sendRemoteCommand {
 sub transmitRequest {
 	my ($self, $fh, $packet) = @_;
 
-	my $payload;
-	if (exists $packet->{payload}) {
-		$payload = $packet->{payload};
-	} else {
-		$payload = $packet;
-	}
+	my $payload = $packet->{payload};
 
-	my $frame_id = $packet->{'frame_id'} || $self->{frame_id} || 0;
+	my $frame_id = $payload->{'frame_id'} || $self->{frame_id} || 0;
 	if (! $frame_id) {
 		$frame_id = 1;
 	}
 
-	my $addr64_h = $packet->{'dest64_h'};
-	my $addr64_l = $packet->{'dest64_l'};
-	my $addr_16 = $packet->{'dest16'};
-	my $radius = $packet->{'radius'};
-	my $options = $packet->{'options'};
-	my $data = $packet->{'data'};
+	my $addr64_h = $payload->{'dest64_h'};
+	my $addr64_l = $payload->{'dest64_l'};
+	my $addr_16 = $payload->{'dest16'};
+	my $radius = $payload->{'radius'};
+	my $options = $payload->{'options'};
+	my $data = $payload->{'data'};
 
 	my $s = pack('CCNNnCCa*', 0x10, $frame_id, $addr64_h, $addr64_l, $addr_16, $radius, $options, $data);
 

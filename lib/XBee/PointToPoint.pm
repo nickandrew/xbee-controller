@@ -66,14 +66,16 @@ sub sendString {
 	$self->{frame_id} = $frame_id;
 
 	my $packet = {
-		data => $string,
-		frame_id => $frame_id,
-		dest64_h => $self->{remote64_h},
-		dest64_l => $self->{remote64_l},
-		dest16 => $self->{remote16_address},
-		radius => 0,
-		options => 0,
 		type => 'transmitRequest',
+		payload => {
+			data => $string,
+			frame_id => $frame_id,
+			dest64_h => $self->{remote64_h},
+			dest64_l => $self->{remote64_l},
+			dest16 => $self->{remote16_address},
+			radius => 0,
+			options => 0,
+		},
 	};
 
 	$self->{client}->sendData($packet);
