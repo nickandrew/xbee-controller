@@ -357,13 +357,10 @@ sub listNodes {
 			my $hr = $at->parseATResponse($packet->{payload});
 
 			if ($hr && $hr->{'AT Command Response'} eq 'Node Discover') {
-				my $node_id = $hr->{'64 bit address'};
-				if ($node_id && $node_id =~ /^(\S+) (\S+)/) {
-					my $addr64 = "$1:$2";
-					my $node = $self->getNode($addr64);
-					$node->setNodeID($hr->{'Node Identifier'});
-					push(@nodes, $node);
-				}
+				my $addr64 = $hr->{'64 bit address'};
+				my $node = $self->getNode($addr64);
+				$node->setNodeID($hr->{'Node Identifier'});
+				push(@nodes, $node);
 			}
 		}
 

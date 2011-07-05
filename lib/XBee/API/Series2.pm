@@ -162,7 +162,7 @@ sub parseATResponse {
 		$hr = {
 			'AT Command Response' => 'Node Discover',
 			'16-bit address'      => sprintf("%04x", $my),
-			'64 bit address'      => sprintf("%08x %08x", $sh, $sl),
+			'64 bit address'      => sprintf("%x:%x", $sh, $sl),
 			'Node Identifier'     => $ni,
 			'Parent Network Addr' => sprintf("%04x", $parent_network),
 			'Device Type'         => sprintf("%x", $device_type),
