@@ -53,11 +53,11 @@ my $response_set = {
 		handler => 'receivePacket',
 	},
 	'92' => {
-		description => 'ZigBee Binding RX Indicator',
-		func => '_bindingReceivePacket',
-		unpack => 'CCCnCa*',
-		keys => [qw(type bind_index dst_endpoint cluster_id options data)],
-		handler => 'bindingReceivePacket',
+		description => 'ZigBee IO Data Sample Rx Indicator',
+		func => '_IODataSample',
+		unpack => 'CNNnCCnCa*',
+		keys => [qw(type sender64_h sender64_l sender16 options samples digital_ch_mask analog_ch_mask data)],
+		handler => 'receiveIOSample',
 	},
 	'94' => {
 		description => 'XBee Sensor Read Indicator', # ZB not 2.5
@@ -281,17 +281,20 @@ sub _explicitReceivePacket {
 	print STDERR "Data: $packet->{data}\n";
 }
 
-sub _bindingReceivePacket {
+sub _IODataSample {
 	my ($self, $data, $packet_desc, $packet) = @_;
 
-	printf STDERR ("Recvd binding data packet: bind_index %d, dst_e %02x, cluster_id %04x, options %d, data %s\n",
-		$packet->{bind_index},
-		$packet->{dst_endpoint},
-		$packet->{cluster_id},
+	printf STDERR ("Recvd IO data sample: sender64 %x:%x sender16 %04x options %x nsamples %x digital_mask %04x analog_mask %02x,",
+		$packet->{sender64_h},
+		$packet->{sender64_l},
+		$packet->{sender16},
 		$packet->{options},
-		$packet->{data});
+		$packet->{nsamples},
+		$packet->{digital_mask},
+		$packet->{analog_mask},
+	);
 
-	$self->printHex("RF Data:", $packet->{data});
+	$self->printHex(" data:", $packet->{data});
 }
 
 sub _APIFrame {
