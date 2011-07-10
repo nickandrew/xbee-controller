@@ -40,6 +40,7 @@ my $network = XBee::Network->new(
 	$xcl);
 
 my $node = XBee::Node->new($opt_n, $network);
+my $updated = 0;
 
 while (@ARGV) {
 	my $command = shift @ARGV;
@@ -48,11 +49,16 @@ while (@ARGV) {
 		my $arg = shift @ARGV;
 		if ($arg) {
 			$node->setNodeID($arg, 1);
+			$updated = 1;
 		}
 	}
 	else {
 		print "Unknown command: $command\n";
 	}
+}
+
+if ($updated) {
+	$node->saveSettings();
 }
 
 exit(0);
