@@ -83,6 +83,30 @@ sub new {
 	return $self;
 }
 
+# ---------------------------------------------------------------------------
+# Send a remote AT command to the device
+# ---------------------------------------------------------------------------
+
+sub _sendRemoteCommand {
+	my ($self, $cmd, $args) = @_;
+
+	my ($dest64_h, $dest64_l, $dest16) = $self->_getAddress();
+
+	my $packet = {
+		type => 'remoteATCommand',
+		payload => {
+			dest64_h => $dest64_h,
+			dest64_l => $dest64_l,
+			dest16 => $dest16,
+			options => 0,
+			cmd => $cmd,
+			args => $args,
+		},
+	};
+
+	$self->{network}->sendPacket($packet);
+}
+
 =item I<setNodeID($id, $action)>
 
 Set the ASCII Node Identifier which is stored in non-volatile RAM on the
@@ -99,21 +123,7 @@ sub setNodeID {
 	$self->{ni} = $id;
 
 	if ($action) {
-		my ($dest64_h, $dest64_l, $dest16) = $self->_getAddress();
-
-		my $packet = {
-			type => 'remoteATCommand',
-			payload => {
-				dest64_h => $dest64_h,
-				dest64_l => $dest64_l,
-				dest16 => $dest16,
-				options => 0,
-				cmd => 'NI',
-				args => $id,
-			},
-		};
-
-		$self->{network}->sendPacket($packet);
+		$self->_sendRemoteCommand('NI', $id);
 	}
 }
 
@@ -127,6 +137,18 @@ sub getNodeID {
 	my ($self) = @_;
 
 	return $self->{ni};
+}
+
+=item I<saveSettings()>
+
+Send a command to save the current settings to NVRAM.
+
+=cut
+
+sub saveSettings {
+	my ($self) = @_;
+
+	$self->_sendRemoteCommand('WR', '');
 }
 
 =item I<getAddress()>
