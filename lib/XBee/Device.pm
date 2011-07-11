@@ -284,17 +284,25 @@ sub _explicitReceivePacket {
 sub _IODataSample {
 	my ($self, $data, $packet_desc, $packet) = @_;
 
+	my $data = $packet->{data};
+
 	printf STDERR ("Recvd IO data sample: sender64 %x:%x sender16 %04x options %x nsamples %x digital_mask %04x analog_mask %02x,",
 		$packet->{sender64_h},
 		$packet->{sender64_l},
 		$packet->{sender16},
 		$packet->{options},
 		$packet->{nsamples},
-		$packet->{digital_mask},
-		$packet->{analog_mask},
+		$packet->{digital_ch_mask},
+		$packet->{analog_ch_mask},
 	);
 
 	$self->printHex(" data:", $packet->{data});
+
+	if ($packet->{digital_ch_mask}) {
+		$packet->{digital_data} = unpack('n', substr($data, 0, 2));
+		printf STDERR ("Digital data: %04x\n", $packet->{digital_data});
+	}
+
 }
 
 sub _APIFrame {
