@@ -47,7 +47,7 @@ sub new {
 	$encaps->setHandler('sendPacket', $peer, 'writeData');
 
 	$peer->setHandler('addData', $encaps, 'addData');
-	$peer->setHandler('socketError', $self, 'peerEOF');
+	$peer->setHandler('socketError', $self, 'peerError');
 	$peer->setHandler('EOF', $self, 'peerEOF');
 
 	bless $self, $class;
@@ -149,10 +149,17 @@ sub terminalEOF {
 	$self->{eof} = 1;
 }
 
+sub peerError {
+	my ($self) = @_;
+
+	print "Error from peer.\n";
+	$self->{eof} = 1;
+}
+
 sub peerEOF {
 	my ($self) = @_;
 
-	print "Error or EOF from peer.\n";
+	print "EOF from peer.\n";
 	$self->{eof} = 1;
 }
 
