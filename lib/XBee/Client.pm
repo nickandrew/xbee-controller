@@ -89,6 +89,9 @@ sub new {
 	};
 
 	$peer->setHandler('addData', $encaps, 'addData');
+	$peer->setHandler('EOF', $self, 'setEOF');
+	$peer->setHandler('socketError', $self, 'setError');
+
 	$encaps->setHandler('packet', $self, 'queuePacket');
 	$encaps->setHandler('sendPacket', $peer, 'writeData');
 
@@ -254,6 +257,30 @@ sub sendATCommand {
 	};
 
 	$self->sendData($packet);
+}
+
+=head2 I<setEOF()>
+
+Set this object's EOF flag. It's called by a peer socket when EOF is noticed.
+
+=cut
+
+sub setEOF {
+	my ($self) = @_;
+
+	$self->{eof} = 1;
+}
+
+=head2 I<setError()>
+
+Set this object's error flag. It's called by a peer socket when an error occurs.
+
+=cut
+
+sub setError {
+	my ($self) = @_;
+
+	$self->{error} = 1;
 }
 
 1;
