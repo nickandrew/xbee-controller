@@ -81,7 +81,7 @@ sub addData {
 			my $packet = $self->{json}->decode($line);
 			if ($packet) {
 				bless $packet, 'XBee::Packet';
-				$self->runHandler('packet', $packet);
+				$self->runHandler('packet', $packet, $self);
 			}
 		}
 	}

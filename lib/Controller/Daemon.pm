@@ -131,7 +131,7 @@ sub eventLoop {
 }
 
 sub serverDistribute {
-	my ($self, $packet_hr) = @_;
+	my ($self, $packet_hr, $source) = @_;
 
 	my ($seconds, $microseconds) = Time::HiRes::gettimeofday();
 
@@ -152,10 +152,11 @@ sub serverDistribute {
 
 	print("Emitting: $json$rest\n");
 
-	# Iterate through all clients
-
-	foreach my $object (values %{$self->{client_sockets}}) {
-		$object->sendPacket($packet_hr);
+	# Transmit packet to all clients, except possibly the object $source
+	foreach my $client (values %{$self->{client_sockets}}) {
+		if (! $source || $source != $client) {
+			$client->sendPacket($packet_hr);
+		}
 	}
 }
 
@@ -174,7 +175,7 @@ sub serverReadEOF {
 # Transmit it to the XBee
 
 sub clientRead {
-	my ($self, $packet_hr) = @_;
+	my ($self, $packet_hr, $source) = @_;
 
 	if (!defined $packet_hr) {
 		print "No packet received\n";
@@ -185,6 +186,11 @@ sub clientRead {
 	my $xbee = $self->{xbee};
 	my $socket = $self->{xbee_socket};
 	my $payload = $packet_hr->{payload};
+
+	# Distribute this packet to all other clients
+	# First make an unblessed form, as JSON cannot handle it
+	my %unblessed = %$packet_hr;
+	$self->serverDistribute(\%unblessed, $source);
 
 	if ($type eq 'transmitRequest') {
 		$xbee->transmitRequest($socket, $packet_hr);
