@@ -13,6 +13,7 @@ package Controller::Terminal2;
 
 use strict;
 
+use Time::HiRes qw();
 use YAML qw();
 
 use Selector qw();
@@ -163,23 +164,36 @@ sub peerEOF {
 	$self->{eof} = 1;
 }
 
+# ---------------------------------------------------------------------------
+# Return a readable string (newlines, tabs etc converted to \\ notation)
+# ---------------------------------------------------------------------------
+
+sub escapeString {
+	my ($s) = @_;
+
+	$s =~ s/\\/\\\\/g;
+	$s =~ s/\n/\\n/g;
+	$s =~ s/\r/\\r/g;
+	$s =~ s/\t/\\t/g;
+
+	return $s;
+}
+
 sub dumpPacket {
 	my ($self, $packet) = @_;
 
 	my $type = $packet->{type};
 	my $payload = $packet->{payload};
 
+	my ($sec, $usec) = Time::HiRes::gettimeofday();
+	printf("%10d.%06d %-15.15s ", $sec, $usec, $type);
+
+
 	if ($type eq 'receivePacket') {
 		my $src = sprintf("%8x:%8x", $payload->{sender64_h}, $payload->{sender64_l});
-		my $i = index($payload->{data}, "\n");
 		printf("<<< %-17s  ", $src);
 
-		# Perform simple non-ascii escaping
-		my $s = $payload->{data};
-		$s =~ s/\\/\\\\/g;
-		$s =~ s/\n/\\n/g;
-		$s =~ s/\r/\\r/g;
-		$s =~ s/\t/\\t/g;
+		my $s = escapeString($payload->{data});
 
 		print $s, "\n";
 		return;
@@ -203,6 +217,15 @@ sub dumpPacket {
 		else {
 			print YAML::Dump($packet);
 		}
+		return;
+	}
+	elsif ($type eq 'transmitRequest') {
+		my $dst = sprintf("%8x:%8x", $payload->{dest64_h}, $payload->{dest64_l});
+		printf(">>> %-17s  ", $dst);
+
+		my $s = escapeString($payload->{data});
+
+		print $s, "\n";
 		return;
 	}
 
