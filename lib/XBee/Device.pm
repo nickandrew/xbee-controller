@@ -81,6 +81,28 @@ my $unknown_frame_type = {
 	handler => 'APIFrame',
 };
 
+my $digital_channel_masks = [
+	[ 'DIO0', 0x01 ],
+	[ 'DIO1', 0x02 ],
+	[ 'DIO2', 0x04 ],
+	[ 'DIO3', 0x08 ],
+	[ 'DIO4', 0x10 ],
+	[ 'DIO5', 0x20 ],
+	[ 'DIO6', 0x40 ],
+	[ 'DIO7', 0x80 ],
+	[ 'DIO10', 0x400 ],
+	[ 'DIO11', 0x800 ],
+	[ 'DIO12', 0x1000 ],
+];
+
+my $analog_channel_masks = [
+	[ 'AD0', 0x01 ],
+	[ 'AD1', 0x02 ],
+	[ 'AD2', 0x04 ],
+	[ 'AD3', 0x08 ],
+	[ 'VCC', 0x80 ],
+];
+
 sub new {
 	my ($class) = @_;
 
@@ -284,23 +306,56 @@ sub _explicitReceivePacket {
 sub _IODataSample {
 	my ($self, $data, $packet_desc, $packet) = @_;
 
-	my $data = $packet->{data};
+	my $payload_data = $packet->{data};
 
-	printf STDERR ("Recvd IO data sample: sender64 %x:%x sender16 %04x options %x nsamples %x digital_mask %04x analog_mask %02x,",
+	printf STDERR ("Recvd IO data sample: sender64 %x:%x sender16 %04x options %x samples %x digital_mask %04x analog_mask %02x,",
 		$packet->{sender64_h},
 		$packet->{sender64_l},
 		$packet->{sender16},
 		$packet->{options},
-		$packet->{nsamples},
+		$packet->{samples},
 		$packet->{digital_ch_mask},
 		$packet->{analog_ch_mask},
 	);
 
-	$self->printHex(" data:", $packet->{data});
+	$self->printHex(" data:", $payload_data);
+	my @words = unpack('n*', $payload_data);
 
 	if ($packet->{digital_ch_mask}) {
-		$packet->{digital_data} = unpack('n', substr($data, 0, 2));
+		my $digital_data = shift @words;
+		$packet->{digital_data} = $digital_data;
 		printf STDERR ("Digital data: %04x\n", $packet->{digital_data});
+
+		my $digital_ch_mask = $packet->{digital_ch_mask};
+
+		foreach my $lr (@$digital_channel_masks) {
+			my ($key, $mask) = @$lr;
+
+			if ($digital_ch_mask & $mask) {
+				$packet->{$key} = ($digital_data & $mask) ? 1 : 0;
+			}
+		}
+
+	}
+
+	if ($packet->{analog_ch_mask}) {
+		my $analog_ch_mask = $packet->{analog_ch_mask};
+
+		foreach my $lr (@$analog_channel_masks) {
+			my ($key, $mask) = @$lr;
+
+			if ($analog_ch_mask & $mask) {
+				my $value = shift @words;
+				if (!defined $value) {
+					# Shouldn't happen, so gripe about it
+					printf STDERR ("Trying to read analog sensor data for %s beyond provided values\n", $key);
+				} else {
+					$packet->{$key} = $value;
+				}
+
+			}
+
+		}
 	}
 
 }
