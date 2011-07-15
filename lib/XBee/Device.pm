@@ -303,28 +303,28 @@ sub _explicitReceivePacket {
 	print STDERR "Data: $packet->{data}\n";
 }
 
+# ---------------------------------------------------------------------------
+# Do further processing on IO Data Sample packets
+#
+# If digital_ch_mask is non-zero, the packet data starts with 2 bytes of
+# digital pin data. Also for any set bits in analog_ch_mask, the packet
+# data contains 2 bytes of analog sensor data.
+#
+# Parse the digital and analog data and set the following keys in the packet
+# if it contains that data:
+#    DIO0 ... DIO7
+#    DIO10 .. DIO12
+#    AD0 .. AD3, VCC
+# ---------------------------------------------------------------------------
+
 sub _IODataSample {
 	my ($self, $data, $packet_desc, $packet) = @_;
 
-	my $payload_data = $packet->{data};
-
-	printf STDERR ("Recvd IO data sample: sender64 %x:%x sender16 %04x options %x samples %x digital_mask %04x analog_mask %02x,",
-		$packet->{sender64_h},
-		$packet->{sender64_l},
-		$packet->{sender16},
-		$packet->{options},
-		$packet->{samples},
-		$packet->{digital_ch_mask},
-		$packet->{analog_ch_mask},
-	);
-
-	$self->printHex(" data:", $payload_data);
-	my @words = unpack('n*', $payload_data);
+	my @words = unpack('n*', $packet->{data});
 
 	if ($packet->{digital_ch_mask}) {
 		my $digital_data = shift @words;
 		$packet->{digital_data} = $digital_data;
-		printf STDERR ("Digital data: %04x\n", $packet->{digital_data});
 
 		my $digital_ch_mask = $packet->{digital_ch_mask};
 
