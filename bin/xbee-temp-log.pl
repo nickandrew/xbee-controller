@@ -125,6 +125,22 @@ sub processPacket {
 				my ($time, $device, $temp) = ($1, $2, $3);
 				logTemperature($time, $device, $temp);
 			}
+			elsif ($line =~ /^TMP1 T (\S+) (\S+)/) {
+				# New style temp log from Tullnet Tiny Temp Monitor V1
+				my ($device, $hex_temp) = ($1, $2);
+
+				my $tempx16 = hex($hex_temp);
+				if ($tempx16 >= 0x8000) {
+					# Temp is negative, 2s complement
+					$tempx16 -= 0x10000;
+				}
+
+				my $temp = $tempx16 / 16;
+
+				if ($hex_temp ne '0550') {
+					logTemperature("N/A", $device, $temp);
+				}
+			}
 
 			$buffered_data->{$source} = $rest;
 		}
