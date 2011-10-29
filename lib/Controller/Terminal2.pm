@@ -113,6 +113,11 @@ sub terminalLine {
 		$self->{destination}->{'64_l'} = hex($2);
 		print "Set destination to $1:$2\n";
 	}
+	elsif ($line =~ /^SOURCE ([0-9a-f]+):([0-9a-f]+)/) {
+		# Set a filter on incoming messages
+		$self->{source} = "$1:$2";
+		print "Set filtered source to $1:$2\n";
+	}
 	elsif ($line =~ /^SEND (.+)/) {
 		my $data = $1;
 
@@ -190,7 +195,14 @@ sub dumpPacket {
 
 
 	if ($type eq 'receivePacket') {
-		my $src = sprintf("%8x:%8x", $payload->{sender64_h}, $payload->{sender64_l});
+		my $src = sprintf("%x:%x", $payload->{sender64_h}, $payload->{sender64_l});
+
+		if ($self->{source} && $self->{source} ne $src) {
+			# Ignore this packet; from a different source
+			return;
+		}
+
+		my $i = index($payload->{data}, "\n");
 		printf("<<< %-17s  ", $src);
 
 		my $s = escapeString($payload->{data});
