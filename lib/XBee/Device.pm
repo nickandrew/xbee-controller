@@ -53,11 +53,11 @@ my $response_set = {
 		handler => 'receivePacket',
 	},
 	'92' => {
-		description => 'ZigBee Binding RX Indicator',
-		func => '_bindingReceivePacket',
-		unpack => 'CCCnCa*',
-		keys => [qw(type bind_index dst_endpoint cluster_id options data)],
-		handler => 'bindingReceivePacket',
+		description => 'ZigBee IO Data Sample Rx Indicator',
+		func => '_IODataSample',
+		unpack => 'CNNnCCnCa*',
+		keys => [qw(type sender64_h sender64_l sender16 options samples digital_ch_mask analog_ch_mask data)],
+		handler => 'receiveIOSample',
 	},
 	'94' => {
 		description => 'XBee Sensor Read Indicator', # ZB not 2.5
@@ -80,6 +80,28 @@ my $unknown_frame_type = {
 	func => '_APIFrame',
 	handler => 'APIFrame',
 };
+
+my $digital_channel_masks = [
+	[ 'DIO0', 0x01 ],
+	[ 'DIO1', 0x02 ],
+	[ 'DIO2', 0x04 ],
+	[ 'DIO3', 0x08 ],
+	[ 'DIO4', 0x10 ],
+	[ 'DIO5', 0x20 ],
+	[ 'DIO6', 0x40 ],
+	[ 'DIO7', 0x80 ],
+	[ 'DIO10', 0x400 ],
+	[ 'DIO11', 0x800 ],
+	[ 'DIO12', 0x1000 ],
+];
+
+my $analog_channel_masks = [
+	[ 'AD0', 0x01 ],
+	[ 'AD1', 0x02 ],
+	[ 'AD2', 0x04 ],
+	[ 'AD3', 0x08 ],
+	[ 'VCC', 0x80 ],
+];
 
 sub new {
 	my ($class) = @_;
@@ -281,17 +303,61 @@ sub _explicitReceivePacket {
 	print STDERR "Data: $packet->{data}\n";
 }
 
-sub _bindingReceivePacket {
+# ---------------------------------------------------------------------------
+# Do further processing on IO Data Sample packets
+#
+# If digital_ch_mask is non-zero, the packet data starts with 2 bytes of
+# digital pin data. Also for any set bits in analog_ch_mask, the packet
+# data contains 2 bytes of analog sensor data.
+#
+# Parse the digital and analog data and set the following keys in the packet
+# if it contains that data:
+#    DIO0 ... DIO7
+#    DIO10 .. DIO12
+#    AD0 .. AD3, VCC
+# ---------------------------------------------------------------------------
+
+sub _IODataSample {
 	my ($self, $data, $packet_desc, $packet) = @_;
 
-	printf STDERR ("Recvd binding data packet: bind_index %d, dst_e %02x, cluster_id %04x, options %d, data %s\n",
-		$packet->{bind_index},
-		$packet->{dst_endpoint},
-		$packet->{cluster_id},
-		$packet->{options},
-		$packet->{data});
+	my @words = unpack('n*', $packet->{data});
 
-	$self->printHex("RF Data:", $packet->{data});
+	if ($packet->{digital_ch_mask}) {
+		my $digital_data = shift @words;
+		$packet->{digital_data} = $digital_data;
+
+		my $digital_ch_mask = $packet->{digital_ch_mask};
+
+		foreach my $lr (@$digital_channel_masks) {
+			my ($key, $mask) = @$lr;
+
+			if ($digital_ch_mask & $mask) {
+				$packet->{$key} = ($digital_data & $mask) ? 1 : 0;
+			}
+		}
+
+	}
+
+	if ($packet->{analog_ch_mask}) {
+		my $analog_ch_mask = $packet->{analog_ch_mask};
+
+		foreach my $lr (@$analog_channel_masks) {
+			my ($key, $mask) = @$lr;
+
+			if ($analog_ch_mask & $mask) {
+				my $value = shift @words;
+				if (!defined $value) {
+					# Shouldn't happen, so gripe about it
+					printf STDERR ("Trying to read analog sensor data for %s beyond provided values\n", $key);
+				} else {
+					$packet->{$key} = $value;
+				}
+
+			}
+
+		}
+	}
+
 }
 
 sub _APIFrame {
