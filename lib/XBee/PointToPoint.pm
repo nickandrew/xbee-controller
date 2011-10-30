@@ -46,6 +46,7 @@ sub new {
 		remote64_h => hex($h),
 		remote64_l => hex($l),
 		xbee_device => $xbee_device,
+		rx_packet_queue => [ ],
 	};
 
 	bless $self, $class;
@@ -59,8 +60,16 @@ sub close {
 	$self->{client}->close();
 }
 
+# ---------------------------------------------------------------------------
+# Send a string to the peer.
+# If timeout is defined and equals zero, do not wait for an acknowledgement.
+# Otherwise wait for an acknowledgement (timeout defaults to 10 seconds).
+# Return 1 if sent packet was acknowledged,
+#        0 if packet was not received, or not waited-for.
+# ---------------------------------------------------------------------------
+
 sub sendString {
-	my ($self, $string) = @_;
+	my ($self, $string, $timeout) = @_;
 
 	my $frame_id = ($self->{frame_id} + 1) & 0xff;
 	$self->{frame_id} = $frame_id;
@@ -78,7 +87,81 @@ sub sendString {
 		},
 	};
 
+	if ($ENV{DEBUG}) {
+		print STDERR "** Sending: ", printable($string), "\n";
+	}
+
 	$self->{client}->sendData($packet);
+
+	# Wait for an acknowledgement packet (transmitStatus)
+	if (!defined $timeout) {
+		$timeout = 10;
+	}
+
+	if ($timeout == 0) {
+		# Do not wait
+		return 0;
+	}
+
+	my $end_time = time() + $timeout;
+	my $interval = $timeout;
+
+	while (1) {
+		my $interval = $end_time - time();
+		if ($interval <= 0) {
+			last;
+		}
+
+		my $packet = $self->{client}->receivePacket($interval);
+		if (!defined $packet) {
+			last;
+		}
+
+		my $type = $packet->type();
+
+		if ($type eq 'receivePacket') {
+			# Queue the packet for later inspection (by recvString)
+			push(@{$self->{rx_packet_queue}}, $packet);
+			next;
+		}
+		elsif ($type eq 'transmitStatus') {
+			my $payload = $packet->{payload};
+
+			# Capture the 16-bit remote address of our peer
+			if ($payload->{frame_id} == $frame_id) {
+				$self->{remote16_address} = $payload->{remote_address};
+
+				my $delivery_status = $payload->{delivery_status};
+				my $discovery_status = $payload->{discovery_status};
+
+				if ($delivery_status == 0) {
+					# Ack for the sent data
+
+					if ($ENV{DEBUG}) {
+						printf STDERR ("** Delivery status: %d  Discovery status: %d\n",
+							$delivery_status,
+							$discovery_status,
+						);
+					}
+
+					return 1;
+				} else {
+
+					printf STDERR ("** Delivery status: %d  Discovery status: %d\n",
+						$delivery_status,
+						$discovery_status,
+					);
+
+					return 0;
+				}
+			} else {
+				# Ignore it, not ours
+			}
+		}
+	}
+
+	# No acknowledgement received
+	return 0;
 }
 
 sub recvString {
@@ -93,10 +176,25 @@ sub recvString {
 	#    - A busy network may never time out
 	#    - A slightly busy network may time out later than expected.
 
+	my $end_time = time() + $timeout;
+
 	while (1) {
-		my $packet = $self->{client}->receivePacket($timeout);
-		if (!defined $packet) {
+		my $interval = $end_time - time();
+		if ($interval <= 0) {
 			return undef;
+		}
+
+		my $packet = pop(@{$self->{rx_packet_queue}});
+		if (! $packet) {
+			$packet = $self->{client}->receivePacket($interval);
+			if (!defined $packet) {
+
+				if ($ENV{DEBUG}) {
+					print STDERR "** receivePacket($timeout) returning undef\n";
+				}
+
+				return undef;
+			}
 		}
 
 		my $type = $packet->type();
@@ -105,10 +203,15 @@ sub recvString {
 
 			my $source = $packet->source();
 			if ($source ne $self->{xbee_device}) {
+				# Ignore other sources
 				next;
 			}
 
 			my $buf = $packet->data();
+
+			if ($ENV{DEBUG}) {
+				print STDERR "** recvString() returning: ", printable($buf), "\n";
+			}
 
 			return $buf;
 		}
@@ -123,7 +226,7 @@ sub recvString {
 				my $discovery_status = $payload->{discovery_status};
 
 				if ($delivery_status != 0 || $discovery_status != 0) {
-					printf("Delivery status: %d  Discovery status: %d\n",
+					printf STDERR ("** Delivery status: %d  Discovery status: %d\n",
 						$delivery_status,
 						$discovery_status,
 					);
@@ -131,10 +234,18 @@ sub recvString {
 			}
 		}
 		else {
-			print "Ignored Packet type $type\n";
+			print STDERR "** Ignored Packet type $type\n";
 			next;
 		}
 	}
+}
+
+sub printable {
+	my ($string) = @_;
+
+	$string =~ s/([^ -}])/sprintf("<%02x>", ord($1))/ge;
+
+	return $string;
 }
 
 1;
