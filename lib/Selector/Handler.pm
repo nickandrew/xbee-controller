@@ -56,6 +56,8 @@ sub runHandler {
 		if ($obj && $func) {
 			$obj->$func(@args);
 		}
+	} elsif ($ENV{DEBUG}) {
+		print STDERR "No handler for $self handler $name\n";
 	}
 }
 
