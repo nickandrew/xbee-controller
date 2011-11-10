@@ -90,6 +90,16 @@ sub connectAndProcess {
 	Sys::Syslog::syslog('info', "Connected to $opt_h");
 
 	while (1) {
+		if ($xcl->isEOF()) {
+			Sys::Syslog::syslog('info', "EOF on client socket");
+			last;
+		}
+
+		if ($xcl->isError()) {
+			Sys::Syslog::syslog('info', "Error on client socket");
+			last;
+		}
+
 		my $packet = $xcl->receivePacket(60);
 
 		next if (!defined $packet);
@@ -97,7 +107,8 @@ sub connectAndProcess {
 		processPacket($packet);
 	}
 
-	# NOTREACHED
+	# Error or EOF, so wait a bit
+	sleep(5);
 }
 
 sub processPacket {
