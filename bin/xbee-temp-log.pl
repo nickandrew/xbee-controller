@@ -36,12 +36,18 @@ if (! -d $opt_d) {
 }
 
 $SIG{'INT'} = sub {
-	print("SIGINT received, exiting\n");
+	Sys::Syslog::syslog('err', "Daemon exiting due to SIGINT");
+	exit(4);
+};
+
+$SIG{'TERM'} = sub {
+	Sys::Syslog::syslog('err', "Daemon exiting due to SIGTERM");
+	print("SIGTERM received, exiting\n");
 	exit(4);
 };
 
 $SIG{'PIPE'} = sub {
-	print("SIGPIPE received, exiting\n");
+	Sys::Syslog::syslog('err', "Daemon exiting due to SIGPIPE");
 	exit(4);
 };
 
