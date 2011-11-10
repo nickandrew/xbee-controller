@@ -24,6 +24,7 @@ use strict;
 
 use Getopt::Std qw(getopts);
 use IO::Select qw();
+use Sys::Syslog qw();
 
 use Controller::Daemon qw();
 use Selector::TTY qw();
@@ -37,13 +38,20 @@ getopts('d:v');
 
 $opt_d || die "Need option -d /dev/ttyUSBx";
 
+Sys::Syslog::openlog('xbee-daemon', "", "local0");
+
 $SIG{'INT'} = sub {
-	print("SIGINT received, exiting\n");
+	Sys::Syslog::syslog('err', "Daemon exiting due to SIGINT");
+	exit(4);
+};
+
+$SIG{'TERM'} = sub {
+	Sys::Syslog::syslog('err', "Daemon exiting due to SIGTERM");
 	exit(4);
 };
 
 $SIG{'PIPE'} = sub {
-	print("SIGPIPE received, exiting\n");
+	Sys::Syslog::syslog('err', "Daemon exiting due to SIGPIPE");
 	exit(4);
 };
 
@@ -53,7 +61,8 @@ while (1) {
 	};
 
 	if ($@) {
-		print STDERR "main() died due to: $@\n";
+		my $err = $@;
+		Sys::Syslog::syslog('err', "Daemon died: %s", $err);
 		exit(8);
 	}
 }
@@ -77,13 +86,13 @@ sub main {
 		);
 
 		if ($listener) {
-			print("Listening on $local_addr\n") if ($opt_v);
+			Sys::Syslog::syslog('info', "Listening on %s", $local_addr);
 			$daemon_obj->addListener($listener);
 		}
 	}
 
 	$daemon_obj->eventLoop();
 
-	print "Controller eventLoop() returned, exiting\n";
+	Sys::Syslog::syslog('info', "Controller eventLoop() returned, exiting");
 	exit(0);
 }
