@@ -191,8 +191,6 @@ sub dumpPacket {
 	my $payload = $packet->{payload};
 
 	my ($sec, $usec) = Time::HiRes::gettimeofday();
-	printf("%10d.%06d %-15.15s ", $sec, $usec, $type);
-
 
 	if ($type eq 'receivePacket') {
 		my $src = sprintf("%x:%x", $payload->{sender64_h}, $payload->{sender64_l});
@@ -202,6 +200,7 @@ sub dumpPacket {
 			return;
 		}
 
+		printf("%10d.%06d %-15.15s ", $sec, $usec, $type);
 		my $i = index($payload->{data}, "\n");
 		printf("<<< %-17s  ", $src);
 
@@ -211,6 +210,7 @@ sub dumpPacket {
 		return;
 	}
 	elsif ($type eq 'transmitStatus') {
+		printf("%10d.%06d %-15.15s ", $sec, $usec, $type);
 		printf("Transmit status: frame_id %d delivery %d discovery %d remote 0x%04x\n",
 			$payload->{frame_id},
 			$payload->{delivery_status},
@@ -221,6 +221,7 @@ sub dumpPacket {
 	}
 	elsif ($type eq 'ATResponse') {
 		my $cmd = $payload->{cmd};
+		printf("%10d.%06d %-15.15s ", $sec, $usec, $type);
 		print "AT Response, command $cmd\n";
 
 		if ($cmd eq 'ND') {
@@ -232,6 +233,7 @@ sub dumpPacket {
 		return;
 	}
 	elsif ($type eq 'transmitRequest') {
+		printf("%10d.%06d %-15.15s ", $sec, $usec, $type);
 		my $dst = sprintf("%8x:%8x", $payload->{dest64_h}, $payload->{dest64_l});
 		printf(">>> %-17s  ", $dst);
 
