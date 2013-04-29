@@ -242,6 +242,24 @@ sub dumpPacket {
 		print $s, "\n";
 		return;
 	}
+	elsif ($type eq 'nodeIdentificationIndicator') {
+		printf("%10d.%06d %-15.15s ", $sec, $usec, $type);
+		my $src = sprintf("%8x:%8x", $payload->{sender64_h}, $payload->{sender64_l});
+		my $src16 = sprintf("%4x", $payload->{sender16});
+		my $remote = sprintf("%8x:%8x", $payload->{remote64_h}, $payload->{remote64_l});
+		my $remote16 = sprintf("%4x", $payload->{remote16});
+		my $device_type = $payload->{device_type};
+
+		printf("Device type %d at %s %s connected to %s %s\n",
+			$device_type,
+			$src,
+			$src16,
+			$remote,
+			$remote16
+		);
+
+		# Fall through to dump the whole packet
+	}
 
 	print "Received packet:\n";
 	print YAML::Dump($packet);
