@@ -158,7 +158,7 @@ sub receive {
 	my $func = $receive_specs->{$type};
 
 	if (! $func) {
-		print "Received packet of unknown type $type\n";
+		print STDERR "Received packet of unknown type $type\n";
 	} else {
 		$self->$func($packet);
 	}
@@ -182,7 +182,7 @@ sub handleReceivePacket {
 	my $node = $self->{nodes}->{$sender_address};
 
 	if (! $node) {
-		print "Received packet from unknown node $sender_address\n";
+		print STDERR "Received packet from unknown node $sender_address\n";
 		return;
 	}
 
@@ -204,7 +204,7 @@ parameters).
 sub handleATResponse {
 	my ($self, $packet) = @_;
 	my $type = $packet->type();
-	print "Received packet of unhandled-type $type\n";
+	print STDERR "Received packet of unhandled-type $type\n";
 }
 
 =item I<handleModemStatus($packet)>
@@ -218,7 +218,7 @@ radio modem (e.g. Co-ordinator started, Joined network, Disassociated).
 sub handleModemStatus {
 	my ($self, $packet) = @_;
 	my $type = $packet->type();
-	print "Received packet of unhandled-type $type\n";
+	print STDERR "Received packet of unhandled-type $type\n";
 }
 
 =item I<handleTransmitStatus($packet)>
@@ -254,7 +254,7 @@ of the received packet.
 sub handleExplicitReceivePacket {
 	my ($self, $packet) = @_;
 	my $type = $packet->type();
-	print "Received packet of unhandled-type $type\n";
+	print STDERR "Received packet of unhandled-type $type\n";
 }
 
 =item I<handleReceiveIOSample($packet)>
@@ -268,7 +268,7 @@ both digital and analogue.
 sub handleReceiveIOSample {
 	my ($self, $packet) = @_;
 	my $type = $packet->type();
-	print "Received packet of unhandled-type $type\n";
+	print STDERR "Received packet of unhandled-type $type\n";
 }
 
 =item I<handleReceiveSensor($packet)>
@@ -282,7 +282,7 @@ There are optionally 4 A/D sensors and a temperature sensor.
 sub handleReceiveSensor {
 	my ($self, $packet) = @_;
 	my $type = $packet->type();
-	print "Received packet of unhandled-type $type\n";
+	print STDERR "Received packet of unhandled-type $type\n";
 }
 
 =item I<handleNodeIdentificationIndicator($packet)>
@@ -297,7 +297,7 @@ happen upon joining a network).
 sub handleNodeIdentificationIndicator {
 	my ($self, $packet) = @_;
 	my $type = $packet->type();
-	print "Received packet of unhandled-type $type\n";
+	print STDERR "Received packet of unhandled-type $type\n";
 }
 
 =item I<handleOTAFirmwareUpdateStatus($packet)>
@@ -311,7 +311,7 @@ attempt.
 sub handleOTAFirmwareUpdateStatus {
 	my ($self, $packet) = @_;
 	my $type = $packet->type();
-	print "Received packet of unhandled-type $type\n";
+	print STDERR "Received packet of unhandled-type $type\n";
 }
 
 =item I<sendPacket($packet)>
