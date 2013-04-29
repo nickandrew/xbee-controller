@@ -25,16 +25,27 @@ package Selector::SocketFactory;
 use strict;
 
 use Socket qw();
-use IO::Socket::INET qw();
 
+# Values should be:
+#   0 == no ipv6, use IO::Socket::INET
+#   1 == ipv6, use IO::Socket::IP (preferred)
+#   2 == ipv6, use IO::Socket::INET6
 my $ipv6_supported = 0;
 
-eval "use Socket6";
+eval "use IO::Socket::IP";
 
-if (! $@) {
+if (!$@) {
+	$ipv6_supported = 1;
+} else {
 	eval "use IO::Socket::INET6";
-	if (! $@) {
-		$ipv6_supported = 1;
+
+	if (!$@) {
+		$ipv6_supported = 2;
+	} else {
+		eval "use IO::Socket::INET";
+		if ($@) {
+			die "Unable to use IO::Socket::INET";
+		}
 	}
 }
 
@@ -55,7 +66,9 @@ sub new {
 
 	my $s;
 
-	if ($ipv6_supported) {
+	if ($ipv6_supported == 1) {
+		$s = IO::Socket::IP->new(@sockargs);
+	} elsif ($ipv6_supported == 2) {
 		$s = IO::Socket::INET6->new(@sockargs);
 	} else {
 		$s = IO::Socket::INET->new(@sockargs);
