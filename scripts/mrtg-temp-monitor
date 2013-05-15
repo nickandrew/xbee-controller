@@ -1,0 +1,94 @@
+#!/usr/bin/perl -w
+#
+#  Copyright (C) 2010, Nick Andrew <nick@nick-andrew.net>
+#  Licensed under the terms of the GNU General Public License, Version 3
+#
+#  MRTG script to log all temp sensor readings.
+
+use strict;
+
+use Sys::Hostname qw();
+use YAML qw();
+
+my $hostname = Sys::Hostname::hostname();
+my $temp_dir = "/home/nick/Priv/Data/Temp";
+
+my $name_map = [ ];
+if (-f "$temp_dir/temp-sensors.yaml") {
+	$name_map = YAML::LoadFile("$temp_dir/temp-sensors.yaml");
+}
+
+checkDirectory("$temp_dir/now");
+
+exit(0);
+
+sub checkDirectory {
+	my ($dir) = @_;
+
+	if (! opendir(DIR, $dir)) {
+		exit(0);
+	}
+
+	my @files = readdir(DIR);
+	closedir(DIR);
+
+	foreach my $device (grep { ! /^\./ } (@files)) {
+		emitTempPara($dir, $device);
+	}
+}
+
+sub emitTempPara {
+	my ($dir, $device) = @_;
+
+	my $temp_file = "$dir/$device";
+	my @b = stat($temp_file);
+
+	if (! -f _) {
+		return;
+	}
+
+	my $mtime = $b[9];
+
+	if ($mtime < time() - 600) {
+		# File is stale, don't return anything
+		return;
+	}
+
+	if (open(IF, "<$temp_file")) {
+		my $line = <IF>;
+		close(IF);
+
+		chomp($line);
+		if ($line =~ /(\S+)\s+(\S+)\s+(\S+)/) {
+			my ($time, $dev, $temp) = ($1, $2, $3);
+
+			$temp = int($temp * 10 + 0.5);
+			my $device_info = $dev;
+			my $name_hr = lookupName($dev);
+			if ($name_hr) {
+				$device_info = $name_hr->{name} || $dev;
+			}
+
+			print "thermo:$device_info\n";
+			print "$temp\n";
+			print "$temp\n";
+			print "\n";
+			print "\n";
+		}
+	}
+
+}
+
+# Find the hashref corresponding to a specific device id
+
+sub lookupName {
+	my ($id) = @_;
+
+	foreach my $hr (@$name_map) {
+		if ($hr->{id} eq $id) {
+			return $hr;
+		}
+	}
+
+	return undef;
+}
