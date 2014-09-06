@@ -78,8 +78,16 @@ sub addData {
 		$line =~ s/\r//g;
 
 		if ($line ne '') {
-			my $packet = $self->{json}->decode($line);
-			if ($packet) {
+			my $packet;
+
+			eval {
+				$packet = $self->{json}->decode($line);
+			};
+
+			if ($@) {
+				# Error in decoding JSON
+				$self->{error} = $@;
+			} elsif ($packet) {
 				bless $packet, 'XBee::Packet';
 				$self->runHandler('packet', $packet, $self);
 			}
