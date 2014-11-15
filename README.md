@@ -19,8 +19,8 @@ through TCP/IP. The binary protocol is decoded into JSON messages.
 The daemon opens the specified device (/dev/ttyUSBx) which is expected to
 be an XBee radio modem such as these:
 
-	http://littlebirdelectronics.com.au/products/xbee-2mw-wire-antenna-series-2-zb
-	http://www.digi.com/products/wireless-wired-embedded-solutions/zigbee-rf-modules/point-multipoint-rfmodules/xbee-series1-module#overview
+  * http://littlebirdelectronics.com.au/products/xbee-2mw-wire-antenna-series-2-zb
+  * http://www.digi.com/products/wireless-wired-embedded-solutions/zigbee-rf-modules/point-multipoint-rfmodules/xbee-series1-module#overview
 
 with a USB interface, configured as a Coordinator and
 using the binary (API) protocol as opposed to the text-based AT protocol.
