@@ -1,0 +1,98 @@
+ZB frame types:
+
+08  AT Command
+09  AT Command - Queue Parameter Value
+10  ZigBee Transmit Request
+11  Explicit Addressing ZigBee Command Frame
+17  Remote AT Command Request
+21  Create Source Route
+
+88  AT Command Response
+8A  Modem Status
+8B  ZigBee Transmit Status
+90  ZigBee Receive Packet
+91  ZigBee Explicit Rx Indicator
+92  ZigBee IO Data Sample Rx Indicator
+94  XBee Sensor Read Indicator
+95  Node Identification Indicator
+97  Remote Command Response
+A0  Over-the-Air Firmware Update Status
+A1  Route Record Indicator
+A3  Many-to-One Route Request Indicator
+
+
+Data Structures:
+
+AT Response
+  frame_id
+  cmd
+  status
+  value (string)
+
+Modem status:
+  hardware_reset
+  watchdog_reset
+  joined
+  unjoined
+  coord_started
+
+Transmit status:
+  frame_id
+  remote_address
+  retry_count
+  delivery_status
+  discovery_status
+
+Advanced modem status:
+  -- nothing -- (decoded but not passed through)
+
+Receive Packet
+  sender64_h
+  sender64_l
+  sender16
+  options
+  data
+
+Explicit Receive Packet:
+  sender64_h
+  sender64_l
+  sender16
+  src_endpoint
+  dst_endpoint
+  cluster_id
+  profile_id
+  data
+
+Binding Receive Packet:
+  -- nothing -- (decoded but not passed through)
+
+Node Identification Indicator
+  type
+  sender64_h
+  sender64_l
+  sender16
+  rx_options
+  remote16
+  remote64_h
+  remote64_l
+  node_id
+  parent16
+  device_type
+  source_event
+  digi_profile_id
+  manufacturer_id
+
+Controller::Daemon::serverDistribute takes all the above structures and wraps
+them like this:
+
+  type => text string denoting frame type
+  time_s => timestamp of received data (seconds)
+  time_u => timestamp of received data (microseconds)
+  payload => contents of frame as above
+
+The types are:
+  nodeIdentificationIndicator
+  ATResponse
+  transmitStatus
+  receivePacket
+  APIFrame (new)
