@@ -13,10 +13,10 @@
 #
 #  listen_addr   A set of one or more listening addresses.
 #                Format:  host:port
-#                ipv4:    0.0.0.0:1681
-#                ipv4:    127.0.0.1:1681
-#                ipv6:    :::1681
-#                ipv6:    [::]:1681
+#                ipv4:    0.0.0.0:7862
+#                ipv4:    127.0.0.1:7862
+#                ipv6:    :::7862
+#                ipv6:    [::]:7862
 #
 #  All I/O to/from the xbee is logged.
 
