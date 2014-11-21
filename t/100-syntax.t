@@ -1,19 +1,24 @@
 #!/usr/bin/perl -w
 #
-#  Copyright (C) 2010, Nick Andrew <nick@nick-andrew.net>
-#  Licensed under the terms of the GNU General Public License, Version 3
+#   Copyright (C) 2014, Nick Andrew <nick@nick-andrew.net>
+#   Licensed under the terms of the GNU General Public License, Version 3
 #
-#  Syntax-check all modules and scripts
+#   Syntax-check all modules, scripts and test scripts
+
+use strict;
+use warnings;
 
 use Test::More qw(no_plan);
 
-checkDir('lib');
-checkDir('bin');
-checkDir('scripts');
+test_dir('bin');
+test_dir('lib');
+test_dir('perllib');
+test_dir('scripts');
+test_dir('t');
 
 exit(0);
 
-sub checkDir {
+sub test_dir {
 	my ($dir) = @_;
 
 	if (! -d $dir) {
@@ -30,26 +35,33 @@ sub checkDir {
 	foreach my $f (@files) {
 		my $path = "$dir/$f";
 
-		if (-f $path && $f =~ /\.(pl|pm|t)$/) {
-			open(P, "perl -Mstrict -wc $path 2>&1 |");
-			my $lines;
-			while (<P>) {
-				$lines .= $_;
-			}
-			if (! close(P)) {
-				warn "Error closing pipe from perl syntax check $path";
-			}
-			my $rc = $?;
+		if (-d $path) {
+			test_dir($path);
+		}
+		elsif (-f $path && $f =~ /\.(pl|pm|t)$/) {
+			test_file($path);
+		}
+	}
+}
 
-			if ($rc) {
-				diag($lines);
-				fail("$path failed - code $rc");
-			} else {
-				pass($path);
-			}
-		}
-		elsif (-d $path) {
-			checkDir($path);
-		}
+sub test_file {
+	my ($path) = @_;
+
+	open(P, "perl -Mstrict -wc $path 2>&1 |");
+	my $lines;
+
+	while (<P>) {
+		$lines .= $_;
+	}
+
+	close(P);
+
+	my $rc = $?;
+
+	if ($rc) {
+		diag($lines);
+		fail("$path failed - code $rc");
+	} else {
+		pass($path);
 	}
 }
