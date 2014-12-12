@@ -17,11 +17,9 @@ lib/XBee/API/Series2.pm
 lib/XBee/API/ZB.pm
 lib/XBee/AT/ZB.pm
 lib/XBee/Client.pm
-lib/XBee/Device2.pm
 lib/XBee/Device.pm
 lib/XBee/Encaps/JSON.pm
 lib/XBee/Network.pm
-lib/XBee/NodeMap.pm
 lib/XBee/Node.pm
 lib/XBee/Packet.pm
 lib/XBee/PointToPoint.pm
