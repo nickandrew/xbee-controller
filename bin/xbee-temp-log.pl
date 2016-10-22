@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #   vim:sw=4:ts=4:
 #
 #  Copyright (C) 2010, Nick Andrew <nick@nick-andrew.net>
@@ -6,26 +6,31 @@
 #
 #  XBee temperature logging daemon
 #
-#  Usage: xbee-temp-log.pl [-d data_dir] [-h host:port]
+#  Usage: xbee-temp-log.pl [-d data_dir] [-h host:port] [-i influxdb_url]
 #
 #  -d data_dir         Specify data directory for logging the temperature (default 'data')
 #  -h host:port        Specify xbee daemon host and/or port (default 127.0.0.1:7862)
+#  -i influxdb_url     Specify optional InfluxDB URL for logging the data
 
 use strict;
+use warnings;
 
 use Date::Format qw(time2str);
-use Getopt::Std qw(getopts);
+use Getopt::Long qw(GetOptions);
 use Sys::Syslog qw();
 
 use XBee::Client qw();
 
-use vars qw($opt_d $opt_h);
+my $opt_d = 'data';
+my $opt_h = '127.0.0.1:7862';
+my $opt_i;
 
 $| = 1;
-getopts('d:h:');
-
-$opt_d ||= 'data';
-$opt_h ||= '127.0.0.1:7862';
+GetOptions(
+	'd=s' => \$opt_d,
+	'h=s' => \$opt_h,
+	'i=s' => \$opt_i,
+);
 
 if (! $opt_d) {
 	die "Need option -d directory";
@@ -33,6 +38,22 @@ if (! $opt_d) {
 
 if (! -d $opt_d) {
 	die "No directory: $opt_d";
+}
+
+if ($opt_i && $opt_i !~ /^https?:\/\//) {
+	die "Invalid option -i $opt_i";
+}
+
+my $ua;
+
+if ($opt_i) {
+	require Mojo::UserAgent;
+	$ua = Mojo::UserAgent->new;
+
+	# Ensure that precision is supplied
+	if ($opt_i !~ /precision=s/) {
+		$opt_i .= "&precision=s";
+	}
 }
 
 $SIG{'INT'} = sub {
@@ -174,13 +195,21 @@ sub processPacket {
 sub logTemperature {
 	my ($time, $device, $temp) = @_;
 
+	# Ensure a consistent timestamp for all logging
+	my $now = time();
+	logTemperatureToFile($now, $time, $device, $temp);
+	logTemperatureToInfluxDB($now, $device, $temp);
+}
+
+sub logTemperatureToFile {
+	my ($now, $time, $device, $temp) = @_;
+
 	my $one_file = "$now_dir/$device";
 	if (open(OF, ">$one_file")) {
 		print OF "$time $device $temp\n";
 		close(OF);
 	}
 
-	my $now = time();
 	my $yyyy = time2str('%Y', $now);
 	my $mm = time2str('%m', $now);
 	my $dd = time2str('%d', $now);
@@ -197,5 +226,28 @@ sub logTemperature {
 	if (open(LF, ">>$log_file")) {
 		print LF "$now $now_ts $device $temp\n";
 		close(LF);
+	}
+}
+
+sub logTemperatureToInfluxDB {
+	my ($now, $device, $temp) = @_;
+
+	if ($ua) {
+		my $line = sprintf("temperature,device=%s temp=%f %d\n",
+			$device,
+			$temp,
+			$now,
+		);
+
+		my $tx = $ua->post($opt_i, { Accept => '*/*' }, $line);
+		my $res = $tx->success;
+		if (!$res) {
+			my $err = $tx->error;
+			if ($err->{code}) {
+				printf STDERR ("Post %s failed: %d %s\n", $opt_i, $err->{code}, $err->{message});
+			} else {
+				printf STDERR ("Connection %s failed: %s\n", $opt_i, $err->{message});
+			}
+		}
 	}
 }
