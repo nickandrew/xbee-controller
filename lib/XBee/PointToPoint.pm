@@ -1,5 +1,4 @@
-#!/usr/bin/perl -w
-#   vim:sw=4:ts=4:
+#!/usr/bin/perl
 #
 #  Copyright (C) 2010, Nick Andrew <nick@nick-andrew.net>
 #  Licensed under the terms of the GNU General Public License, Version 3
@@ -9,6 +8,7 @@
 package XBee::PointToPoint;
 
 use strict;
+use warnings;
 
 use Carp qw(confess);
 
@@ -232,6 +232,9 @@ sub recvString {
 					);
 				}
 			}
+		}
+		elsif ($type eq 'transmitRequest') {
+			# Ignore this quietly
 		}
 		else {
 			print STDERR "** Ignored Packet type $type\n";
