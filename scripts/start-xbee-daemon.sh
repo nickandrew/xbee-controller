@@ -14,14 +14,16 @@ if [ ! -d $BASE_DIR ] ; then
 	exit 8
 fi
 
-if [ ! -c $DEV ] ; then
-	echo "No dev $DEV"
-	exit 8
-fi
-
 cd $BASE_DIR
 
 while true ; do
+
+	if [ ! -c $DEV ] ; then
+		echo "No dev $DEV"
+		sleep 30
+		continue
+	fi
+
 	stty 9600 raw -echo < $DEV
 
 	bin/xbee-daemon.pl -d $DEV "[::]:7862"
