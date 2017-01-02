@@ -163,7 +163,7 @@ sub processPacket {
 				my ($time, $device, $temp) = ($1, $2, $3);
 				logTemperature($time, $device, $temp);
 			}
-			elsif ($line =~ /^TMP1 T (\S+) (\S+)/) {
+			elsif ($line =~ /^TMP1 T ([0-9a-f][0-9a-f]\.[0-9a-f]+) ([0-9a-f]+)/i) {
 				# New style temp log from Tullnet Tiny Temp Monitor V1
 				my ($device, $hex_temp) = ($1, $2);
 
