@@ -165,7 +165,7 @@ sub processPacket {
 			}
 			elsif ($line =~ /^TMP1 T ([0-9a-f][0-9a-f]\.[0-9a-f]+) ([0-9a-f]+)/i) {
 				# New style temp log from Tullnet Tiny Temp Monitor V1
-				my ($device, $hex_temp) = ($1, $2);
+				my ($device, $hex_temp) = (lc($1), $2);
 
 				my $tempx16 = hex($hex_temp);
 				if ($tempx16 >= 0x8000) {
@@ -198,7 +198,7 @@ sub logTemperature {
 	# Ensure a consistent timestamp for all logging
 	my $now = time();
 	logTemperatureToFile($now, $time, $device, $temp);
-	logTemperatureToInfluxDB($now, $device, $temp);
+	logTemperatureToInfluxDB($now, $device, {net => 'xbee'}, $temp);
 }
 
 sub logTemperatureToFile {
@@ -229,17 +229,40 @@ sub logTemperatureToFile {
 	}
 }
 
-sub logTemperatureToInfluxDB {
-	my ($now, $device, $temp) = @_;
+# Escape tag keys, tag values, field keys: space, comma, equals
 
+sub _escapeTag {
+	my $string = shift;
+
+	$string =~ s/ /\\ /g;
+	$string =~ s/,/\\,/g;
+	$string =~ s/=/\\=/g;
+
+	return $string;
+}
+
+sub logTemperatureToInfluxDB {
+	my ($now, $device, $tags, $temp) = @_;
+
+	$tags->{device} = $device;
 	if ($ua) {
-		my $line = sprintf("temperature,device=%s temp=%f %d\n",
-			$device,
+		my @tag_list;
+		foreach my $k (sort (keys %$tags)) {
+			my $v = $tags->{$k};
+			$v = _escapeTag($v);
+			$k = _escapeTag($k);
+			push(@tag_list, "$k=$v");
+		}
+		my $tag_str = join(',', @tag_list);
+
+		my $line = sprintf("temperature,%s temp=%f %d",
+			$tag_str,
 			$temp,
 			$now,
 		);
 
 		my $tx = $ua->post($opt_i, { Accept => '*/*' }, $line);
+
 		my $res = $tx->success;
 		if (!$res) {
 			my $err = $tx->error;
