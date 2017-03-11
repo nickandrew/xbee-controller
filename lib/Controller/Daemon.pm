@@ -32,8 +32,8 @@ use Time::HiRes qw();
 use Selector::ListenSocket qw();
 use Selector::PeerSocket qw();
 use Selector qw();
-use XBee::Encaps::JSON qw();
-use XBee::Device qw();
+use TullNet::XBee::Encaps::JSON qw();
+use TullNet::XBee::Device qw();
 
 sub new {
 	my ($class) = @_;
@@ -51,7 +51,7 @@ sub new {
 	$self->{json} = JSON->new()->utf8();
 	$self->{json}->canonical(1);
 
-	my $xbee = XBee::Device->new();
+	my $xbee = TullNet::XBee::Device->new();
 	$self->{xbee} = $xbee;
 	$xbee->setHandler('recvdPacket', $self, 'serverDistribute');
 	$xbee->setHandler('readEOF', $self, 'serverReadEOF');
@@ -93,7 +93,7 @@ sub addClient {
 	my ($self, $socket) = @_;
 
 	my $peer = Selector::PeerSocket->new($self->{selector}, $socket);
-	my $encaps = XBee::Encaps::JSON->new();
+	my $encaps = TullNet::XBee::Encaps::JSON->new();
 
 	$peer->setHandler('socketError', $self, 'removeClient');
 	$peer->setHandler('EOF', $self, 'removeClient');

@@ -13,7 +13,7 @@ package Controller::Terminal;
 
 use strict;
 
-use XBee::Device qw();
+use TullNet::XBee::Device qw();
 use Selector qw();
 use Terminal qw();
 
@@ -22,8 +22,8 @@ sub new {
 
 	my $selector = Selector->new();
 
-	my $device = XBee::Device->new();
-	my $tty_device = XBee::TTY->new('/dev/tty');
+	my $device = TullNet::XBee::Device->new();
+	my $tty_device = TullNet::XBee::TTY->new('/dev/tty');
 	my $terminal = Terminal->new();
 
 	$selector->addSelect( [ $xbee_device->socket(), $device ] );
