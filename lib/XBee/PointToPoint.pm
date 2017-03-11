@@ -45,7 +45,7 @@ sub new {
 		remote16_address => 0xfffe,
 		remote64_h => hex($h),
 		remote64_l => hex($l),
-		xbee_device => $xbee_device,
+		xbee_device => lc($xbee_device),
 		rx_packet_queue => [ ],
 	};
 
