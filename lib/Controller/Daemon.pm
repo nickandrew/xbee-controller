@@ -59,6 +59,16 @@ sub new {
 	return $self;
 }
 
+sub debug {
+	my $self = shift;
+
+	if (@_) {
+		$self->{debug} = shift;
+	}
+
+	return $self->{debug};
+}
+
 sub addListener {
 	my ($self, $socket) = @_;
 
@@ -141,7 +151,7 @@ sub serverDistribute {
 	my $json = $self->{json}->encode($packet_hr);
 
 	if ($self->{clients} == 0) {
-		print("Ignored: $json\n");
+		print("Ignored: $json\n") if ($self->{debug});
 		return;
 	}
 
@@ -150,7 +160,7 @@ sub serverDistribute {
 		$rest = " to $self->{clients} clients";
 	}
 
-	print("Emitting: $json$rest\n");
+	print("Emitting: $json$rest\n") if ($self->{debug});
 
 	# Transmit packet to all clients, except possibly the object $source
 	foreach my $client (values %{$self->{client_sockets}}) {
