@@ -5,14 +5,14 @@
 #
 #  A point-to-point XBee connection
 
-package XBee::PointToPoint;
+package TullNet::XBee::PointToPoint;
 
 use strict;
 use warnings;
 
 use Carp qw(confess);
 
-use XBee::Client qw();
+use TullNet::XBee::Client qw();
 
 sub new {
 	my ($class, $args) = @_;
@@ -34,7 +34,7 @@ sub new {
 
 	my ($h, $l) = ($1, $2);
 
-	my $client = XBee::Client->new($server_address);
+	my $client = TullNet::XBee::Client->new($server_address);
 	if (! $client) {
 		die "Unable to connect to XBee server at $server_address";
 	}

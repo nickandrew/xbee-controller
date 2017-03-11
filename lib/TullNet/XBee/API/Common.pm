@@ -8,7 +8,7 @@
 
 =head1 NAME
 
-XBee::API::Common - XBee API methods
+TullNet::XBee::API::Common - XBee API methods
 
 =head1 DESCRIPTION
 
@@ -21,7 +21,7 @@ This class implements the following methods:
 
 =cut
 
-package XBee::API::Common;
+package TullNet::XBee::API::Common;
 
 use strict;
 

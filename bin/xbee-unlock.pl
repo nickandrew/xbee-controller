@@ -15,9 +15,9 @@ use strict;
 use Getopt::Std qw(getopts);
 use YAML qw();
 
-use XBee::Client qw();
-use XBee::API::Series2 qw();
-use XBee::PointToPoint qw();
+use TullNet::XBee::Client qw();
+use TullNet::XBee::API::Series2 qw();
+use TullNet::XBee::PointToPoint qw();
 
 use vars qw($opt_l);
 
@@ -61,7 +61,7 @@ exit(0);
 
 sub connectAndProcess {
 
-	$p2p = XBee::PointToPoint->new( {
+	$p2p = TullNet::XBee::PointToPoint->new( {
 		xbee_device => $lock_args->{device_args}->{xbee_device},
 		xbee_server => $lock_args->{device_args}->{xbee_server},
 	} );

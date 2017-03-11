@@ -3,7 +3,7 @@
 
 =head1 NAME
 
-XBee::API::Series2 - XBee Series 2 API
+TullNet::XBee::API::Series2 - XBee Series 2 API
 
 =head1 DESCRIPTION
 
@@ -24,7 +24,7 @@ This class implements the following methods:
 
 =cut
 
-package XBee::API::Series2;
+package TullNet::XBee::API::Series2;
 
 use strict;
 
@@ -32,7 +32,7 @@ use strict;
 
 Instantiate a new object of this class.
 
-$client is a reference to an XBee::Client.
+$client is a reference to an TullNet::XBee::Client.
 
 =cut
 

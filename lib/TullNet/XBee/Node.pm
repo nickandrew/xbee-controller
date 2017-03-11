@@ -6,12 +6,12 @@
 
 =head1 NAME
 
-XBee::Node - An XBee end device
+TullNet::XBee::Node - An XBee end device
 
 =head1 SYNOPSIS
 
-  my $network = XBee::Network->new( ... );
-  my $node = XBee::Node->new('12a34:4428cc0', $network);
+  my $network = TullNet::XBee::Network->new( ... );
+  my $node = TullNet::XBee::Node->new('12a34:4428cc0', $network);
 
   $node->sendString("Hello, world.\n");
 
@@ -21,15 +21,15 @@ XBee::Node - An XBee end device
 
 =head1 DESCRIPTION
 
-XBee::Node represents a single XBee end device within a network. It is
+TullNet::XBee::Node represents a single XBee end device within a network. It is
 identified by its 64-bit ZigBee node identifier, represented like this:
 "12a34:4428cc0".
 
-Each XBee::Node keeps an internal buffer of data received, but not yet
+Each TullNet::XBee::Node keeps an internal buffer of data received, but not yet
 processed.
 
-XBee::Node is used in conjunction with XBee::Network, which will receive
-packets from a daemon and add them to the XBee::Node internal buffer.
+TullNet::XBee::Node is used in conjunction with TullNet::XBee::Network, which will receive
+packets from a daemon and add them to the TullNet::XBee::Node internal buffer.
 
 To retrieve data from a node, call getData() to retrieve the whole buffer
 (will return '' if empty) or getLine() to return only one line of data
@@ -37,7 +37,7 @@ ending in \n (will return undef if none).
 
 =head1 SUBCLASSING
 
-Subclass XBee::Node to implement event-driven processing, for example
+Subclass TullNet::XBee::Node to implement event-driven processing, for example
 by replacing addData().
 
 =head1 METHODS
@@ -46,14 +46,14 @@ by replacing addData().
 
 =cut
 
-package XBee::Node;
+package TullNet::XBee::Node;
 
 use strict;
 
 =item I<new($address, $network)>
 
-Return a new instance of XBee::Node identified by $address and communicating
-through $network which is an instance of XBee::Network.
+Return a new instance of TullNet::XBee::Node identified by $address and communicating
+through $network which is an instance of TullNet::XBee::Network.
 
 =cut
 
@@ -208,7 +208,7 @@ sub sendString {
 =item I<addData($string)>
 
 Add a received string to our buffer of received (unprocessed) data.
-This is used by XBee::Network when it has received a data packet from
+This is used by TullNet::XBee::Network when it has received a data packet from
 the device.
 
 =cut

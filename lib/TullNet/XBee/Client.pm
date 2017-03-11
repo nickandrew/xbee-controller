@@ -6,16 +6,16 @@
 
 =head1 NAME
 
-XBee::Client - A tcp client of the XBee daemon
+TullNet::XBee::Client - A tcp client of the XBee daemon
 
 =head1 DESCRIPTOIN
 
-The XBee::Client maintains a TCP socket connection to an XBee Daemon and is
+The TullNet::XBee::Client maintains a TCP socket connection to an XBee Daemon and is
 able to receive and send JSON-encoded packets with the daemon.
 
 =head1 SYNOPSIS
 
-  $xcl = XBee::Client->new($server_address);
+  $xcl = TullNet::XBee::Client->new($server_address);
 
   $packet = $xcl->receivePacket($timeout);
 
@@ -41,7 +41,7 @@ Or
 
 =cut
 
-package XBee::Client;
+package TullNet::XBee::Client;
 
 use strict;
 
@@ -51,8 +51,8 @@ use JSON qw();
 use Selector qw();
 use Selector::PeerSocket qw();
 use Selector::SocketFactory qw();
-use XBee::Encaps::JSON qw();
-use XBee::Packet qw();
+use TullNet::XBee::Encaps::JSON qw();
+use TullNet::XBee::Packet qw();
 
 =head2 I<new($server_address)>
 
@@ -75,7 +75,7 @@ sub new {
 
 	my $selector = Selector->new();
 	my $peer = Selector::PeerSocket->new($selector, $socket);
-	my $encaps = XBee::Encaps::JSON->new();
+	my $encaps = TullNet::XBee::Encaps::JSON->new();
 
 	my $self = {
 		eof => 0,

@@ -17,9 +17,9 @@ use strict;
 
 use Getopt::Std qw(getopts);
 
-use XBee::Client qw();
-use XBee::Network qw();
-use XBee::AT::ZB qw();
+use TullNet::XBee::Client qw();
+use TullNet::XBee::Network qw();
+use TullNet::XBee::AT::ZB qw();
 
 use vars qw($opt_h $opt_n);
 
@@ -29,17 +29,17 @@ $opt_h ||= '127.0.0.1:7862';
 
 $opt_n || die "Need option -n xxx:xxx";
 
-my $xcl = XBee::Client->new($opt_h);
+my $xcl = TullNet::XBee::Client->new($opt_h);
 
 if (!defined $xcl) {
 	die "Unable to connect to xbee server";
 }
 
-my $network = XBee::Network->new(
-	XBee::AT::ZB->new(),
+my $network = TullNet::XBee::Network->new(
+	TullNet::XBee::AT::ZB->new(),
 	$xcl);
 
-my $node = XBee::Node->new($opt_n, $network);
+my $node = TullNet::XBee::Node->new($opt_n, $network);
 my $updated = 0;
 
 while (@ARGV) {

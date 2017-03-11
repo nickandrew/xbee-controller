@@ -6,11 +6,11 @@
 #
 #  XBee device
 
-package XBee::Device;
+package TullNet::XBee::Device;
 
 use strict;
 
-use base qw(XBee::API::Frame);
+use base qw(TullNet::XBee::API::Frame);
 
 my $DEBUG = 1;
 

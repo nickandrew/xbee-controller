@@ -29,7 +29,7 @@ use Sys::Syslog qw();
 use Controller::Daemon qw();
 use Selector::TTY qw();
 use Selector::SocketFactory qw();
-use XBee::Device qw();
+use TullNet::XBee::Device qw();
 
 use vars qw($opt_d $opt_v);
 

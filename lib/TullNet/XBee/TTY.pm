@@ -4,7 +4,7 @@
 #  Licensed under the terms of the GNU General Public License, Version 3
 #
 
-package XBee::TTY;
+package TullNet::XBee::TTY;
 
 use strict;
 

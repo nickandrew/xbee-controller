@@ -3,13 +3,13 @@
 
 =head1 NAME
 
-XBee::API::ZB - XBee ZB API
+TullNet::XBee::API::ZB - XBee ZB API
 
 =head1 DESCRIPTION
 
 This class performs API frame parsing for the ZB firmware (version 21xx).
 
-See I<XBee::API::Common> for usage information.
+See I<TullNet::XBee::API::Common> for usage information.
 
 =head1 METHODS
 
@@ -17,11 +17,11 @@ This class implements the following methods:
 
 =cut
 
-package XBee::API::ZB;
+package TullNet::XBee::API::ZB;
 
 use strict;
 
-use base 'XBee::API::Common';
+use base 'TullNet::XBee::API::Common';
 
 my $class_api = {
 	'10' => {
