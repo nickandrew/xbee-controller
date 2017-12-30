@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 #   vim:sw=4:ts=4:
 #
-#  Copyright (C) 2010, Nick Andrew <nick@nick-andrew.net>
+#  Copyright (C) 2010-2017, Nick Andrew <nick@nick-andrew.net>
 #  Licensed under the terms of the GNU General Public License, Version 3
 
 =head1 NAME
@@ -21,6 +21,8 @@ The frame structure is:
   data (N bytes)
   checksum (1 byte)
 
+Packets longer than 255 bytes (by default) are ignored.
+
 =head2 METHODS
 
 =cut
@@ -28,6 +30,7 @@ The frame structure is:
 package TullNet::XBee::API::Frame;
 
 use strict;
+use warnings;
 
 my $DEBUG = 1;
 
@@ -44,6 +47,7 @@ sub new {
 	my $self = {
 		data => undef,
 		l_msb => undef,
+		packet_max_length => 255,
 		to_read => undef,
 		cksum => undef,
 		state => 0,
@@ -84,10 +88,18 @@ sub addData {
 			$state = 2;
 		}
 		elsif ($state == 2) {
-			my $l_lsb = ord($c);
-			$self->{'to_read'} = ($self->{'l_msb'} << 8) + $l_lsb;
-			$self->{'cksum'} = 0;
-			$state = 3;
+			$self->{'l_lsb'} = ord($c);
+			my $length = ($self->{'l_msb'} << 8) + $self->{'l_lsb'};
+			if ($length > $self->{'packet_max_length'}) {
+				# Don't allow arbitrarily long packets
+				printf STDERR ("Long packet (length %d) ignored, max is %d\n",
+					$length, $self->{'packet_max_length'});
+				$state = 0;
+			} else {
+				$self->{'length'} = $length;
+				$self->{'to_read'} = $length;
+				$state = 3;
+			}
 		}
 		elsif ($state == 3) {
 			$self->{'data'} .= $c;
@@ -175,9 +187,9 @@ sub serialise {
 
 	my $len = length($buf);
 
-	if ($len > 10000) {
+	if ($len > $self->{'packet_max_length'}) {
 		# Too long
-		$@ = 'Packet too long';
+		$@ = sprintf('Packet too long: length=%d, maximum=%d', $len, $self->{'packet_max_length'});
 		return undef;
 	}
 
