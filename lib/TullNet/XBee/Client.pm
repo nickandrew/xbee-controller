@@ -70,7 +70,7 @@ sub new {
 	);
 
 	if (!defined $socket) {
-		die "Unable to create a client socket";
+		die "Unable to create a client socket to $server_address";
 	}
 
 	my $selector = Selector->new();
