@@ -32,8 +32,6 @@ package TullNet::XBee::API::Frame;
 use strict;
 use warnings;
 
-my $DEBUG = 1;
-
 
 =head2 I<new()>
 
@@ -45,6 +43,7 @@ sub new {
 	my ($class) = @_;
 
 	my $self = {
+		debug => 0,
 		data => undef,
 		l_msb => undef,
 		packet_max_length => 255,
@@ -208,25 +207,54 @@ sub serialise {
 }
 
 
-=head2 I<printHex($title, $string)>
+=head2 I<debug($string, args...)>
 
-If debugging is enabled and a string is supplied,
-then print to STDOUT the title followed by the string in hex.
+If debugging is enabled, then printf supplied string and args to STDERR. A newline is appended.
+
+=cut
+
+sub debug {
+	my $self = shift;
+
+	if ($self->{'debug'}) {
+		printf STDERR (@_);
+		print STDERR "\n";
+	}
+}
+
+
+=head2 I<error($string, args...)>
+
+Printf supplied string to STDERR. A newline is appended.
+
+=cut
+
+sub error {
+	my $self = shift;
+
+	printf STDERR (@_);
+	print STDERR "\n";
+}
+
+=head2 I<printHex($title, $buf)>
+
+If a buffer is supplied, then print to STDERR the title followed
+by the buffer contents in hex, then a newline.
 
 =cut
 
 sub printHex {
-	my ($self, $heading, $s) = @_;
+	my ($self, $title, $buf) = @_;
 
-	if ($DEBUG && defined($s)) {
-		my $str = $heading;
+	if (defined($buf)) {
+		my $str = $title;
 
-		my @chars = unpack('C*', $s);
+		my @chars = unpack('C*', $buf);
 		foreach my $i (@chars) {
 			$str .= sprintf(" %02x", $i);
 		}
 
-		print STDERR "$str\n";
+		print STDERR $str, "\n";
 	}
 }
 
