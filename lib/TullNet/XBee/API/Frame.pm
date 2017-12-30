@@ -45,7 +45,6 @@ sub new {
 	my $self = {
 		debug => 0,
 		data => undef,
-		index => 0,
 		leading_junk => '',
 		l_msb => undef,
 		packet_max_length => 255,
@@ -73,23 +72,14 @@ sub addData {
 	my ($self, $buf) = @_;
 
 	my $state = $self->{'state'};
-	my $index = $self->{'index'}; # Index of byte number within frame (0x7e byte is index 0)
 
 	foreach my $c (split(//, $buf)) {
-		# Sometimes, introduce an error
-		if (int(rand(200)) == 0) {
-			my $o_c = $c;
-			$c = chr(int(rand(256)));
-			$self->error("Corrupted byte index %d from %02x to %02x",
-				$index, ord($o_c), ord($c));
-		}
 
 		if ($state == 0) {
 			if ($c eq chr(0x7e)) {
 				$self->{'data'} = undef;
 				$self->{'done'} = 0;
 				$self->{'cksum'} = 0;
-				$index = 1; # Next byte is index 1
 				$state = 1;
 				if ($self->{'leading_junk'} ne '') {
 					$self->printHex("Skipping junk pre frame start:", $self->{'leading_junk'});
@@ -101,12 +91,10 @@ sub addData {
 		}
 		elsif ($state == 1) {
 			$self->{'l_msb'} = ord($c);
-			$index ++;
 			$state = 2;
 		}
 		elsif ($state == 2) {
 			$self->{'l_lsb'} = ord($c);
-			$index ++;
 			my $length = ($self->{'l_msb'} << 8) + $self->{'l_lsb'};
 			if ($length > $self->{'packet_max_length'}) {
 				# Don't allow arbitrarily long packets
@@ -123,7 +111,6 @@ sub addData {
 			$self->{'data'} .= $c;
 			$self->{'cksum'} += ord($c);
 			$self->{'to_read'} --;
-			$index ++;
 			if ($self->{'to_read'} == 0) {
 				$state = 4;
 			}
@@ -143,16 +130,14 @@ sub addData {
 			}
 
 			$state = 0;
-			$index = 0;
 		}
 		else {
 			die "Illegal state $state";
 		}
 	}
 
-	# Remember state and index within frame for next time
+	# Remember state within frame for next time
 	$self->{'state'} = $state;
-	$self->{'index'} = $index;
 
 	return 1;
 }
