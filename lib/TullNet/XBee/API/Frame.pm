@@ -45,6 +45,7 @@ sub new {
 	my $self = {
 		debug => 0,
 		data => undef,
+		leading_junk => '',
 		l_msb => undef,
 		packet_max_length => 255,
 		to_read => undef,
@@ -70,16 +71,22 @@ If there's an error in the frame, call $self->checksumError().
 sub addData {
 	my ($self, $buf) = @_;
 
-	my $start = chr(0x7e);
 	my $state = $self->{'state'};
 
 	foreach my $c (split(//, $buf)) {
 
 		if ($state == 0) {
-			if ($c eq $start) {
+			if ($c eq chr(0x7e)) {
 				$self->{'data'} = undef;
 				$self->{'done'} = 0;
+				$self->{'cksum'} = 0;
 				$state = 1;
+				if ($self->{'leading_junk'} ne '') {
+					$self->printHex("Skipping junk pre frame start:", $self->{'leading_junk'});
+				}
+				$self->{'leading_junk'} = '';
+			} else {
+				$self->{'leading_junk'} .= $c;
 			}
 		}
 		elsif ($state == 1) {
@@ -91,7 +98,7 @@ sub addData {
 			my $length = ($self->{'l_msb'} << 8) + $self->{'l_lsb'};
 			if ($length > $self->{'packet_max_length'}) {
 				# Don't allow arbitrarily long packets
-				printf STDERR ("Long packet (length %d) ignored, max is %d\n",
+				$self->error("Long packet (length %d) ignored, max is %d",
 					$length, $self->{'packet_max_length'});
 				$state = 0;
 			} else {
@@ -109,7 +116,9 @@ sub addData {
 			}
 		}
 		elsif ($state == 4) {
-			$self->{'cksum'} += ord($c);
+			my $cksum_byte = ord($c);
+			$self->{'cksum_byte'} = $cksum_byte;
+			$self->{'cksum'} += $cksum_byte;
 
 			if (($self->{'cksum'} & 0xff) != 0xff) {
 				$self->checksumError();
@@ -127,7 +136,7 @@ sub addData {
 		}
 	}
 
-	# Remember state for next time
+	# Remember state within frame for next time
 	$self->{'state'} = $state;
 
 	return 1;
@@ -136,7 +145,7 @@ sub addData {
 
 =head2 I<checksumError()>
 
-Called when an illegal frame has been detected.
+Called when an invalid frame has been detected.
 
 Override this in subclasses.
 
@@ -145,8 +154,14 @@ Override this in subclasses.
 sub checksumError {
 	my ($self) = @_;
 
-	printf STDERR ("Checksum error: got %02x, expected 0xff\n", $self->{'cksum'});
-	$self->printHex("Bad frame:", $self->{'data'});
+	my $err = sprintf("Frame Checksum error: start=7e l_msb=%02x l_lsb=%02x (length %d), cksum_byte=%02x, cksum=%02x (expected 0xff), data:",
+		$self->{'l_msb'},
+		$self->{'l_lsb'},
+		$self->{'length'},
+		$self->{'cksum_byte'},
+		$self->{'cksum'},
+	);
+	$self->printHex($err, $self->{'data'});
 }
 
 
