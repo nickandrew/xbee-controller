@@ -94,6 +94,12 @@ sub sendNodeIdentity {
 	return $self->_sendATCommand('NI');
 }
 
+sub sendMaxRFPayloadBytes {
+	my ($self) = @_;
+
+	return $self->_sendATCommand('NP');
+}
+
 sub sendPowerLevel {
 	my ($self) = @_;
 
@@ -177,6 +183,14 @@ sub parseATResponse {
 		$hr = {
 			'AT Command Response' => 'Node Identity',
 			'Node Identifier'     => $ni,
+		};
+	}
+	elsif ($cmd eq 'NP') {
+		my ($max_rf_payload_bytes) = unpack('n', $value);
+
+		$hr = {
+			'AT Command Response' => 'Max RF Payload Bytes',
+			'Max RF Payload Bytes' => $max_rf_payload_bytes,
 		};
 	}
 	elsif ($cmd eq 'PL') {
