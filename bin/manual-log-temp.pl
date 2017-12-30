@@ -15,7 +15,7 @@ use Date::Format qw(time2str);
 use Getopt::Long qw(GetOptions);
 use Sys::Syslog qw();
 
-use XBee::Client qw();
+use TullNet::XBee::Client qw();
 
 my $opt_d;
 my $opt_i;

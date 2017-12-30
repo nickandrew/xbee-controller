@@ -6,7 +6,7 @@
 
 =head1 NAME
 
-XBee::Encaps::JSON - JSON format encapsulation of XBee messages
+TullNet::XBee::Encaps::JSON - JSON format encapsulation of XBee messages
 
 XBee packets are processed as a hashref of the following format:
 
@@ -26,7 +26,7 @@ implements the JSON serialisation.
 
 use strict;
 
-package XBee::Encaps::JSON;
+package TullNet::XBee::Encaps::JSON;
 
 use strict;
 
@@ -60,7 +60,7 @@ sub new {
 
 Add the string $data to the internal buffer.
 Any complete lines in the buffer are parsed as JSON strings, and if valid,
-are passed to the 'packet' handler after being blessed as 'XBee::Packet'.
+are passed to the 'packet' handler after being blessed as 'TullNet::XBee::Packet'.
 
 =cut
 
@@ -88,7 +88,7 @@ sub addData {
 				# Error in decoding JSON
 				$self->{error} = $@;
 			} elsif ($packet) {
-				bless $packet, 'XBee::Packet';
+				bless $packet, 'TullNet::XBee::Packet';
 				$self->runHandler('packet', $packet, $self);
 			}
 		}

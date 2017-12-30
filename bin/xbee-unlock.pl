@@ -15,9 +15,9 @@ use strict;
 use Getopt::Std qw(getopts);
 use YAML qw();
 
-use XBee::Client qw();
-use XBee::API::Series2 qw();
-use XBee::PointToPoint qw();
+use TullNet::XBee::Client qw();
+use TullNet::XBee::API::Series2 qw();
+use TullNet::XBee::PointToPoint qw();
 
 use vars qw($opt_l);
 
@@ -61,7 +61,7 @@ exit(0);
 
 sub connectAndProcess {
 
-	$p2p = XBee::PointToPoint->new( {
+	$p2p = TullNet::XBee::PointToPoint->new( {
 		xbee_device => $lock_args->{device_args}->{xbee_device},
 		xbee_server => $lock_args->{device_args}->{xbee_server},
 	} );
@@ -96,18 +96,6 @@ sub connectAndProcess {
 		exit(7);
 	}
 
-	$p2p->sendString('V');
-
-	$buf = readLine(5);
-
-	if (defined $buf) {
-		chomp($buf);
-		if ($buf =~ /^V (\d+) (\d+) (\d+) (\d+)/) {
-			my ($a0_1, $a1_1, $a0_2, $a1_2) = ($1, $2, $3, $4);
-			printf("Voltages at $name: %d %d\n", int(($a0_1 + $a0_2) / 2), int(($a1_1 + $a1_2) / 2));
-		}
-	}
-
 	$p2p->sendString('U');
 
 	# Wait up to 10 seconds for a subsequent 'L' message.
@@ -126,7 +114,7 @@ sub connectAndProcess {
 
 		chomp($buf);
 		if ($buf eq 'L') {
-			print "Locked $name\n";
+			print "Unlocked and re-locked $name\n";
 			last;
 		}
 	}
@@ -162,6 +150,6 @@ sub readLine {
 		}
 	}
 
-	# No complet line was read within timeout
+	# No complete line was read within timeout
 	return undef;
 }

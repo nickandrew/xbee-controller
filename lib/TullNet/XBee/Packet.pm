@@ -6,11 +6,11 @@
 
 =head1 NAME
 
-XBee::Packet - Encapsulation of a packet to/from XBee via TCP
+TullNet::XBee::Packet - Encapsulation of a packet to/from XBee via TCP
 
 =cut
 
-package XBee::Packet;
+package TullNet::XBee::Packet;
 
 use strict;
 

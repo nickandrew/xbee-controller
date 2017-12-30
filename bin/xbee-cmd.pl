@@ -20,14 +20,14 @@ use strict;
 use Getopt::Std qw(getopts);
 use YAML qw();
 
-use XBee::Client qw();
+use TullNet::XBee::Client qw();
 
 use vars qw($opt_h);
 
 getopts('h:');
 
 my $host = $opt_h || die "Need option -h host:port";
-my $xcl = XBee::Client->new($host);
+my $xcl = TullNet::XBee::Client->new($host);
 
 # Convert all hex arguments to characters
 

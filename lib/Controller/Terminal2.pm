@@ -19,17 +19,17 @@ use YAML qw();
 use Selector qw();
 use Selector::PeerSocket qw();
 use Terminal qw();
-use XBee::Encaps::JSON qw();
-use XBee::TTY qw();
+use TullNet::XBee::Encaps::JSON qw();
+use TullNet::XBee::TTY qw();
 
 sub new {
 	my ($class, $client_socket) = @_;
 
 	my $selector = Selector->new();
 
-	my $encaps = XBee::Encaps::JSON->new();
+	my $encaps = TullNet::XBee::Encaps::JSON->new();
 	my $peer = Selector::PeerSocket->new($selector, $client_socket);
-	my $tty_device = XBee::TTY->new('/dev/tty');
+	my $tty_device = TullNet::XBee::TTY->new('/dev/tty');
 	my $terminal = Terminal->new();
 
 	$selector->addSelect( [ $client_socket, $peer ] );

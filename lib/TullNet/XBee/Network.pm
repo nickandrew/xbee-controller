@@ -6,13 +6,13 @@
 
 =head1 NAME
 
-XBee::Network - A high level interface to a network of XBees
+TullNet::XBee::Network - A high level interface to a network of XBees
 
 =head1 DESCRIPTION
 
-XBee::Network provides a way to communicate with an XBee controller and
+TullNet::XBee::Network provides a way to communicate with an XBee controller and
 one or more XBee end devices. It abstracts the controller device (in
-this class) and end devices (as subclasses of XBee::Node).
+this class) and end devices (as subclasses of TullNet::XBee::Node).
 
 =head1 METHODS
 
@@ -20,11 +20,11 @@ this class) and end devices (as subclasses of XBee::Node).
 
 =cut
 
-package XBee::Network;
+package TullNet::XBee::Network;
 
 use strict;
 
-use XBee::Node qw();
+use TullNet::XBee::Node qw();
 
 my $receive_specs = {
 	'receivePacket'   => 'handleReceivePacket',
@@ -43,9 +43,9 @@ my $receive_specs = {
 
 Return a new instance of this class.
 
-$api is a reference to an XBee::AT (to interpret AT commands and responses).
+$api is a reference to an TullNet::XBee::AT (to interpret AT commands and responses).
 
-$client is a reference to an XBee::Client (to communicate with the controller/daemon).
+$client is a reference to an TullNet::XBee::Client (to communicate with the controller/daemon).
 
 =cut
 
@@ -55,7 +55,7 @@ sub new {
 	my $self = {
 		api => $api,
 		client => $client,
-		default_class => 'XBee::Node',
+		default_class => 'TullNet::XBee::Node',
 		nodes => { },
 		frame_id => int(rand(254)) + 1,
 	};
@@ -316,7 +316,7 @@ sub handleOTAFirmwareUpdateStatus {
 
 =item I<sendPacket($packet)>
 
-Send a supplied packet through our XBee::Client connection.
+Send a supplied packet through our TullNet::XBee::Client connection.
 
 =cut
 
@@ -329,7 +329,7 @@ sub sendPacket {
 
 =item I<listNodes()>
 
-Return an array of XBee::Node objects representing each node currently
+Return an array of TullNet::XBee::Node objects representing each node currently
 connected to the network.
 
 =cut

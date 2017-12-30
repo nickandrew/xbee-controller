@@ -19,7 +19,7 @@ use Getopt::Std qw(getopts);
 use Sys::Syslog qw();
 use YAML qw();
 
-use XBee::Client qw();
+use TullNet::XBee::Client qw();
 
 use vars qw($opt_c $opt_d $opt_h);
 
@@ -98,7 +98,7 @@ exit(0);
 
 sub connectAndProcess {
 
-	my $xcl = XBee::Client->new($opt_h);
+	my $xcl = TullNet::XBee::Client->new($opt_h);
 
 	if (!defined $xcl) {
 		die "Unable to create a client socket";
@@ -108,12 +108,12 @@ sub connectAndProcess {
 
 	while (1) {
 		if ($xcl->isEOF()) {
-			print "EOF on XBee::Client\n";
+			print "EOF on TullNet::XBee::Client\n";
 			last;
 		}
 
 		if ($xcl->isError()) {
-			print "Error on XBee::Client\n";
+			print "Error on TullNet::XBee::Client\n";
 			last;
 		}
 

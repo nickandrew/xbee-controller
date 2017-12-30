@@ -6,13 +6,13 @@
 
 use Test::More qw(no_plan);
 
-use XBee::Encaps::JSON qw();
+use TullNet::XBee::Encaps::JSON qw();
 
 my $tested_sendpacket = 0;
 my $tested_packet = 0;
 
-my $e = XBee::Encaps::JSON->new();
-isa_ok($e, 'XBee::Encaps::JSON');
+my $e = TullNet::XBee::Encaps::JSON->new();
+isa_ok($e, 'TullNet::XBee::Encaps::JSON');
 
 my $packet = {
 	type => 'testPacket',

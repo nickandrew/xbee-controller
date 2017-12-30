@@ -6,10 +6,10 @@
 use Test::More qw(no_plan);
 use YAML qw();
 
-use XBee::API::Common qw();
-use XBee::API::ZB qw();
+use TullNet::XBee::API::Common qw();
+use TullNet::XBee::API::ZB qw();
 
-my $api = XBee::API::ZB->new();
+my $api = TullNet::XBee::API::ZB->new();
 
 testUnknownType(); # 0x05
 testATResponse();  # 0x88

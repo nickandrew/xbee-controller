@@ -95,10 +95,10 @@ The current specification looks like http://ftp1.digi.com/support/documentation/
 
 # Writing a client
 
-See perldoc for module XBee::Client for this. The synopsis is:
+See perldoc for module TullNet::XBee::Client for this. The synopsis is:
 
 ```perl
-  $xcl = XBee::Client->new($server_address);
+  $xcl = TullNet::XBee::Client->new($server_address);
 
   $packet = $xcl->receivePacket($timeout);
 

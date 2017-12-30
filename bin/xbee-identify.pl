@@ -15,9 +15,9 @@ use Getopt::Std qw(getopts);
 use Data::Dumper qw(Dumper);
 use YAML qw();
 
-use XBee::Client qw();
-use XBee::Network qw();
-use XBee::AT::ZB qw();
+use TullNet::XBee::Client qw();
+use TullNet::XBee::Network qw();
+use TullNet::XBee::AT::ZB qw();
 
 use vars qw($opt_h);
 
@@ -25,14 +25,14 @@ getopts('h:');
 
 $opt_h ||= '127.0.0.1:7862';
 
-my $xcl = XBee::Client->new($opt_h);
+my $xcl = TullNet::XBee::Client->new($opt_h);
 
 if (!defined $xcl) {
 	die "Unable to connect to xbee server";
 }
 
-my $network = XBee::Network->new(
-	XBee::AT::ZB->new(),
+my $network = TullNet::XBee::Network->new(
+	TullNet::XBee::AT::ZB->new(),
 	$xcl);
 
 print "Finding network nodes\n";

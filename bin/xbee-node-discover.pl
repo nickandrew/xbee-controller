@@ -15,8 +15,8 @@ use strict;
 
 use Getopt::Std qw(getopts);
 
-use XBee::Client qw();
-use XBee::API::Series2 qw();
+use TullNet::XBee::Client qw();
+use TullNet::XBee::API::Series2 qw();
 
 use vars qw($opt_h);
 
@@ -41,13 +41,13 @@ exit(0);
 
 sub connectAndProcess {
 
-	my $xcl = XBee::Client->new($opt_h);
+	my $xcl = TullNet::XBee::Client->new($opt_h);
 
 	if (!defined $xcl) {
 		die "Unable to create a client socket";
 	}
 
-	my $xbee_api = XBee::API::Series2->new($xcl);
+	my $xbee_api = TullNet::XBee::API::Series2->new($xcl);
 	if (! $xbee_api) {
 		die "Unable to create an XBee API implementation";
 	}

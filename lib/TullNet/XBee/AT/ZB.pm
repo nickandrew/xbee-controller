@@ -6,7 +6,7 @@
 
 =head1 NAME
 
-XBee::AT::ZB - XBee AT command set - ZB firmware (latest)
+TullNet::XBee::AT::ZB - XBee AT command set - ZB firmware (latest)
 
 =head1 DESCRIPTION
 
@@ -21,7 +21,7 @@ very little for constructing valid commands.
 
 =cut
 
-package XBee::AT::ZB;
+package TullNet::XBee::AT::ZB;
 
 use strict;
 

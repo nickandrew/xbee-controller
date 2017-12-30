@@ -32,8 +32,8 @@ use Time::HiRes qw();
 use Selector::ListenSocket qw();
 use Selector::PeerSocket qw();
 use Selector qw();
-use XBee::Encaps::JSON qw();
-use XBee::Device qw();
+use TullNet::XBee::Encaps::JSON qw();
+use TullNet::XBee::Device qw();
 
 sub new {
 	my ($class) = @_;
@@ -51,12 +51,22 @@ sub new {
 	$self->{json} = JSON->new()->utf8();
 	$self->{json}->canonical(1);
 
-	my $xbee = XBee::Device->new();
+	my $xbee = TullNet::XBee::Device->new();
 	$self->{xbee} = $xbee;
 	$xbee->setHandler('recvdPacket', $self, 'serverDistribute');
 	$xbee->setHandler('readEOF', $self, 'serverReadEOF');
 
 	return $self;
+}
+
+sub debug {
+	my $self = shift;
+
+	if (@_) {
+		$self->{debug} = shift;
+	}
+
+	return $self->{debug};
 }
 
 sub addListener {
@@ -83,7 +93,7 @@ sub addClient {
 	my ($self, $socket) = @_;
 
 	my $peer = Selector::PeerSocket->new($self->{selector}, $socket);
-	my $encaps = XBee::Encaps::JSON->new();
+	my $encaps = TullNet::XBee::Encaps::JSON->new();
 
 	$peer->setHandler('socketError', $self, 'removeClient');
 	$peer->setHandler('EOF', $self, 'removeClient');
@@ -141,7 +151,7 @@ sub serverDistribute {
 	my $json = $self->{json}->encode($packet_hr);
 
 	if ($self->{clients} == 0) {
-		print("Ignored: $json\n");
+		print("Ignored: $json\n") if ($self->{debug});
 		return;
 	}
 
@@ -150,7 +160,7 @@ sub serverDistribute {
 		$rest = " to $self->{clients} clients";
 	}
 
-	print("Emitting: $json$rest\n");
+	print("Emitting: $json$rest\n") if ($self->{debug});
 
 	# Transmit packet to all clients, except possibly the object $source
 	foreach my $client (values %{$self->{client_sockets}}) {

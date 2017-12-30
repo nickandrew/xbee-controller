@@ -12,8 +12,8 @@ use Getopt::Std qw(getopts);
 use YAML qw();
 
 use Selector qw();
-use XBee::Device qw();
-use XBee::TTY qw();
+use TullNet::XBee::Device qw();
+use TullNet::XBee::TTY qw();
 
 use vars qw($opt_d $opt_f);
 
@@ -25,8 +25,8 @@ if ($opt_f && -f $opt_f) {
 	$options = YAML::LoadFile($opt_f);
 }
 
-my $device = XBee::TTY->new($opt_d);
-my $controller = XBee::Device->new();
+my $device = TullNet::XBee::TTY->new($opt_d);
+my $controller = TullNet::XBee::Device->new();
 my $selector = Selector->new();
 
 my $fh = $device->socket();
