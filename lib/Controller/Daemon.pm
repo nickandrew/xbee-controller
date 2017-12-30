@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 #   vim:sw=4:ts=4:
 #
-#  Copyright (C) 2010, Nick Andrew <nick@nick-andrew.net>
+#  Copyright (C) 2010-2017, Nick Andrew <nick@nick-andrew.net>
 #  Licensed under the terms of the GNU General Public License, Version 3
 #
 #  XBee controller daemon
@@ -25,6 +25,7 @@ are accepted and become new clients.
 package Controller::Daemon;
 
 use strict;
+use warnings;
 
 use JSON qw();
 use Time::HiRes qw();
@@ -41,6 +42,7 @@ sub new {
 	my $self = {
 		clients => 0,
 		client_sockets => { },
+		debug => 0,
 		selector => undef,
 		server => undef,
 	};
