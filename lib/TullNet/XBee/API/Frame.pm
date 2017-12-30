@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 #   vim:sw=4:ts=4:
 #
-#  Copyright (C) 2010, Nick Andrew <nick@nick-andrew.net>
+#  Copyright (C) 2010-2017, Nick Andrew <nick@nick-andrew.net>
 #  Licensed under the terms of the GNU General Public License, Version 3
 
 =head1 NAME
@@ -21,6 +21,8 @@ The frame structure is:
   data (N bytes)
   checksum (1 byte)
 
+Packets longer than 255 bytes (by default) are ignored.
+
 =head2 METHODS
 
 =cut
@@ -28,8 +30,7 @@ The frame structure is:
 package TullNet::XBee::API::Frame;
 
 use strict;
-
-my $DEBUG = 1;
+use warnings;
 
 
 =head2 I<new()>
@@ -42,8 +43,11 @@ sub new {
 	my ($class) = @_;
 
 	my $self = {
+		debug => 0,
 		data => undef,
+		leading_junk => '',
 		l_msb => undef,
+		packet_max_length => 255,
 		to_read => undef,
 		cksum => undef,
 		state => 0,
@@ -67,16 +71,22 @@ If there's an error in the frame, call $self->checksumError().
 sub addData {
 	my ($self, $buf) = @_;
 
-	my $start = chr(0x7e);
 	my $state = $self->{'state'};
 
 	foreach my $c (split(//, $buf)) {
 
 		if ($state == 0) {
-			if ($c eq $start) {
+			if ($c eq chr(0x7e)) {
 				$self->{'data'} = undef;
 				$self->{'done'} = 0;
+				$self->{'cksum'} = 0;
 				$state = 1;
+				if ($self->{'leading_junk'} ne '') {
+					$self->printHex("Skipping junk pre frame start:", $self->{'leading_junk'});
+				}
+				$self->{'leading_junk'} = '';
+			} else {
+				$self->{'leading_junk'} .= $c;
 			}
 		}
 		elsif ($state == 1) {
@@ -84,10 +94,18 @@ sub addData {
 			$state = 2;
 		}
 		elsif ($state == 2) {
-			my $l_lsb = ord($c);
-			$self->{'to_read'} = ($self->{'l_msb'} << 8) + $l_lsb;
-			$self->{'cksum'} = 0;
-			$state = 3;
+			$self->{'l_lsb'} = ord($c);
+			my $length = ($self->{'l_msb'} << 8) + $self->{'l_lsb'};
+			if ($length > $self->{'packet_max_length'}) {
+				# Don't allow arbitrarily long packets
+				$self->error("Long packet (length %d) ignored, max is %d",
+					$length, $self->{'packet_max_length'});
+				$state = 0;
+			} else {
+				$self->{'length'} = $length;
+				$self->{'to_read'} = $length;
+				$state = 3;
+			}
 		}
 		elsif ($state == 3) {
 			$self->{'data'} .= $c;
@@ -98,7 +116,9 @@ sub addData {
 			}
 		}
 		elsif ($state == 4) {
-			$self->{'cksum'} += ord($c);
+			my $cksum_byte = ord($c);
+			$self->{'cksum_byte'} = $cksum_byte;
+			$self->{'cksum'} += $cksum_byte;
 
 			if (($self->{'cksum'} & 0xff) != 0xff) {
 				$self->checksumError();
@@ -116,7 +136,7 @@ sub addData {
 		}
 	}
 
-	# Remember state for next time
+	# Remember state within frame for next time
 	$self->{'state'} = $state;
 
 	return 1;
@@ -125,7 +145,7 @@ sub addData {
 
 =head2 I<checksumError()>
 
-Called when an illegal frame has been detected.
+Called when an invalid frame has been detected.
 
 Override this in subclasses.
 
@@ -134,8 +154,14 @@ Override this in subclasses.
 sub checksumError {
 	my ($self) = @_;
 
-	printf STDERR ("Checksum error: got %02x, expected 0xff\n", $self->{'cksum'});
-	$self->printHex("Bad frame:", $self->{'data'});
+	my $err = sprintf("Frame Checksum error: start=7e l_msb=%02x l_lsb=%02x (length %d), cksum_byte=%02x, cksum=%02x (expected 0xff), data:",
+		$self->{'l_msb'},
+		$self->{'l_lsb'},
+		$self->{'length'},
+		$self->{'cksum_byte'},
+		$self->{'cksum'},
+	);
+	$self->printHex($err, $self->{'data'});
 }
 
 
@@ -175,9 +201,9 @@ sub serialise {
 
 	my $len = length($buf);
 
-	if ($len > 10000) {
+	if ($len > $self->{'packet_max_length'}) {
 		# Too long
-		$@ = 'Packet too long';
+		$@ = sprintf('Packet too long: length=%d, maximum=%d', $len, $self->{'packet_max_length'});
 		return undef;
 	}
 
@@ -196,25 +222,54 @@ sub serialise {
 }
 
 
-=head2 I<printHex($title, $string)>
+=head2 I<debug($string, args...)>
 
-If debugging is enabled and a string is supplied,
-then print to STDOUT the title followed by the string in hex.
+If debugging is enabled, then printf supplied string and args to STDERR. A newline is appended.
+
+=cut
+
+sub debug {
+	my $self = shift;
+
+	if ($self->{'debug'}) {
+		printf STDERR (@_);
+		print STDERR "\n";
+	}
+}
+
+
+=head2 I<error($string, args...)>
+
+Printf supplied string to STDERR. A newline is appended.
+
+=cut
+
+sub error {
+	my $self = shift;
+
+	printf STDERR (@_);
+	print STDERR "\n";
+}
+
+=head2 I<printHex($title, $buf)>
+
+If a buffer is supplied, then print to STDERR the title followed
+by the buffer contents in hex, then a newline.
 
 =cut
 
 sub printHex {
-	my ($self, $heading, $s) = @_;
+	my ($self, $title, $buf) = @_;
 
-	if ($DEBUG && defined($s)) {
-		my $str = $heading;
+	if (defined($buf)) {
+		my $str = $title;
 
-		my @chars = unpack('C*', $s);
+		my @chars = unpack('C*', $buf);
 		foreach my $i (@chars) {
 			$str .= sprintf(" %02x", $i);
 		}
 
-		print STDERR "$str\n";
+		print STDERR $str, "\n";
 	}
 }
 

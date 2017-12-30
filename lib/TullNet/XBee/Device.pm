@@ -145,13 +145,6 @@ sub runHandler {
 	}
 }
 
-sub checksumError {
-	my ($self, $cksum) = @_;
-
-	printf STDERR ("Checksum error: got %02x, expected 0xff\n", $self->{'cksum'});
-	$self->printHex("Bad frame:", $self->{'data'});
-}
-
 # ---------------------------------------------------------------------------
 # Called when a frame has been successfully received from the XBee
 # ---------------------------------------------------------------------------

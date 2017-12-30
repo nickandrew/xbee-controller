@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #   vim:sw=4:ts=4:
 #
 #  Copyright (C) 2010, Nick Andrew <nick@nick-andrew.net>
@@ -6,10 +6,10 @@
 #
 #  Distribute all messages received from a USB-connected XBee to TCP-connected clients.
 #
-#  Usage: xbee-daemon.pl [-d /dev/ttyUSBx] [-v] listen_addr ...
+#  Usage: xbee-daemon.pl [-d /dev/ttyUSBx] [--debug] listen_addr ...
 #
 #  -d /dev/ttyUSBx     Connect to specified device
-#  -v                  Verbose
+#  --debug             Enable per-packet logging (decoded packets)
 #
 #  listen_addr   A set of one or more listening addresses.
 #                Format:  host:port
@@ -21,8 +21,9 @@
 #  All I/O to/from the xbee is logged.
 
 use strict;
+use warnings;
 
-use Getopt::Std qw(getopts);
+use Getopt::Long qw(GetOptions);
 use IO::Select qw();
 use Sys::Syslog qw();
 
@@ -31,10 +32,14 @@ use Selector::TTY qw();
 use Selector::SocketFactory qw();
 use TullNet::XBee::Device qw();
 
-use vars qw($opt_d $opt_v);
+my $opt_d;
+my $opt_debug;
 
 $| = 1;
-getopts('d:v');
+GetOptions(
+	'debug' => \$opt_debug,
+	'd=s' => \$opt_d,
+);
 
 $opt_d || die "Need option -d /dev/ttyUSBx";
 
@@ -76,6 +81,10 @@ sub main {
 	my $daemon_obj = Controller::Daemon->new();
 
 	$daemon_obj->addServer($tty_obj);
+
+	if ($opt_debug) {
+		$daemon_obj->debug($opt_debug);
+	}
 
 	foreach my $local_addr (@ARGV) {
 		my $listener = Selector::SocketFactory->new(
